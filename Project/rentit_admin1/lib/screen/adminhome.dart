@@ -23,7 +23,7 @@ class _AdminHomeState extends State<AdminHome> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
-   manageplace(),
+   Manageplace(),
    Complaint(),
    manageshop(),
    ManageDistrict(),
