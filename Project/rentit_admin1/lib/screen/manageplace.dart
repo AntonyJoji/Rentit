@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:rentit_admin1/main.dart';
 
 class Manageplace extends StatefulWidget {
   const Manageplace({super.key});
@@ -12,6 +13,29 @@ class _ManageplaceState extends State<Manageplace>
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
   final Duration _animationDuration = const Duration(milliseconds: 300);
+  final TextEditingController placeController = TextEditingController();
+
+Future<void> Manageplace() async{
+  try {
+    String place = placeController.text;
+    await supabase.from('tbl_place').insert({
+      'place_name':place,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:Text(
+          'place added',
+          style:TextStyle(color:Colors.white),
+        ),
+        backgroundColor: Colors.green,
+         ),
+    );
+    print("Inserted");
+    placeController.clear();
+  } catch(e){
+    print("Error adding place");
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +53,8 @@ class _ManageplaceState extends State<Manageplace>
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label: const Text("Add Place"),
-                icon: const Icon(Icons.add),
+                label:Text(_isFormVisible ? "Cancel":"Add place"),
+                icon: Icon(_isFormVisible ? Icons.cancel:Icons.add),
               )
             ],
           ),
