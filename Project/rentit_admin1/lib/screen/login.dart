@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:rentit_admin1/screen/dashboard.dart';
+import 'package:rentit_admin1/screen/adminhome.dart';
 
 class AdminLogin extends StatefulWidget {
   const AdminLogin({super.key});
@@ -121,7 +121,7 @@ class _AdminLoginState extends State<AdminLogin> {
                             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const AdminDashBoard(),
+                builder: (context) => const AdminHome(),
               ),
             );
                           },
