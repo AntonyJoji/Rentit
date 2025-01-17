@@ -1,17 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:rentit_admin1/main.dart';
 
-class ManageDistrict extends StatefulWidget {
-  const ManageDistrict({super.key});
+class Managedistrict extends StatefulWidget {
+  const Managedistrict({super.key});
 
   @override
-  State<ManageDistrict> createState() => _ManageDistrictState();
+  State<Managedistrict> createState() => _ManagedistrictState();
 }
 
-class _ManageDistrictState extends State<ManageDistrict>
+class _ManagedistrictState extends State<Managedistrict>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
   final Duration _animationDuration = const Duration(milliseconds: 300);
+  final TextEditingController districtController = TextEditingController();
+
+Future<void> Managedistrict() async{
+  try {
+    String district = districtController.text;
+    await supabase.from('tbl_district').insert({
+      'district_name':district,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content:Text(
+          'district added',
+          style:TextStyle(color:Colors.white),
+        ),
+        backgroundColor: Colors.green,
+         ),
+    );
+    print("Inserted");
+    districtController.clear();
+  } catch(e){
+    print("Error adding district:$e");
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +46,15 @@ class _ManageDistrictState extends State<ManageDistrict>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Manage District"),
+              const Text("Manage district"),
               ElevatedButton.icon(
                 onPressed: () {
                   setState(() {
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label: Text("Add District"),
-                icon: Icon(Icons.add),
+                label:Text(_isFormVisible ? "Cancel":"Add district"),
+                icon: Icon(_isFormVisible ? Icons.cancel:Icons.add),
               )
             ],
           ),
@@ -44,26 +68,30 @@ class _ManageDistrictState extends State<ManageDistrict>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "District Form",
+                          "district Form",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
-                        TextFormField(
-                          decoration: const InputDecoration(
-                            labelText: "District Name",
-                            border: OutlineInputBorder(),
-                          ),
-                          
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              // Handle form submission logic here
-                            }
-                          },
-                          child: const Text("Add"),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: districtController,
+                                decoration: const InputDecoration(
+                                  labelText: "district Name",
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            ElevatedButton(
+                              onPressed: () {
+                               Managedistrict();
+                              },
+                              child: const Text("Add"),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -72,10 +100,10 @@ class _ManageDistrictState extends State<ManageDistrict>
           ),
           Container(
             height: 500,
-            child: Center(
-              child: Text("District Data"),
+            child: const Center(
+              child: Text("district Data"),
             ),
-          )
+          ),
         ],
       ),
     );

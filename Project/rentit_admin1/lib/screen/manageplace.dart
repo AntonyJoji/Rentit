@@ -77,6 +77,7 @@ Future<void> Manageplace() async{
                           children: [
                             Expanded(
                               child: TextFormField(
+                                controller: placeController,
                                 decoration: const InputDecoration(
                                   labelText: "Place Name",
                                   border: OutlineInputBorder(),
@@ -86,9 +87,7 @@ Future<void> Manageplace() async{
                             const SizedBox(width: 10),
                             ElevatedButton(
                               onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Handle form submission logic here
-                                }
+                               Manageplace();
                               },
                               child: const Text("Add"),
                             ),

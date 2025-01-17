@@ -26,7 +26,7 @@ class _AdminHomeState extends State<AdminHome> {
    Manageplace(),
    Complaint(),
    manageshop(),
-   ManageDistrict(),
+   Managedistrict(),
    manageuser(),
    Viewbooking(),
    Category(),
