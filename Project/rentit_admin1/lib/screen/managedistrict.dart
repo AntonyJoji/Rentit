@@ -15,27 +15,53 @@ class _ManagedistrictState extends State<Managedistrict>
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController districtController = TextEditingController();
 
-Future<void> Managedistrict() async{
-  try {
-    String district = districtController.text;
-    await supabase.from('tbl_district').insert({
-      'district_name':district,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:Text(
-          'district added',
-          style:TextStyle(color:Colors.white),
+  List<Map<String, dynamic>> districtList = [];
+
+  Future<void> Managedistrict() async {
+    try {
+      String district = districtController.text;
+      await supabase.from('tbl_district').insert({
+        'district_name': district,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'district added',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
         ),
-        backgroundColor: Colors.green,
-         ),
-    );
-    print("Inserted");
-    districtController.clear();
-  } catch(e){
-    print("Error adding district:$e");
+      );
+      print("Inserted");
+      districtController.clear();
+    } catch (e) {
+      print("Error adding district:$e");
+    }
   }
-}
+
+  Future<void> fetchDistrict() async {
+    try {
+      final response = await supabase.from('tbl_district').select();
+      // print(response);
+      setState(() {
+        districtList = List<Map<String, dynamic>>.from(response);
+      });
+      display();
+    } catch (e) {
+      print("ERROR FETCHING DISTRICT DATA: $e");
+    }
+  }
+
+  void display(){
+    print(districtList);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    fetchDistrict();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +79,8 @@ Future<void> Managedistrict() async{
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label:Text(_isFormVisible ? "Cancel":"Add district"),
-                icon: Icon(_isFormVisible ? Icons.cancel:Icons.add),
+                label: Text(_isFormVisible ? "Cancel" : "Add district"),
+                icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
               )
             ],
           ),
@@ -87,7 +113,7 @@ Future<void> Managedistrict() async{
                             const SizedBox(width: 10),
                             ElevatedButton(
                               onPressed: () {
-                               Managedistrict();
+                                Managedistrict();
                               },
                               child: const Text("Add"),
                             ),
@@ -98,12 +124,28 @@ Future<void> Managedistrict() async{
                   )
                 : Container(),
           ),
-          Container(
-            height: 500,
-            child: const Center(
-              child: Text("district Data"),
-            ),
-          ),
+          DataTable(
+            columns: [
+              DataColumn(label: Text("Sl.No")),
+              DataColumn(label: Text("District")),
+              DataColumn(label: Text("DElete")),
+            ],
+            rows: districtList.asMap().entries.map((entry) {
+              print(entry.value);
+              return DataRow(cells: [
+                DataCell(Text((entry.key + 1).toString())), // Serial number
+                DataCell(Text(entry.value['district_name'])),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      // _deleteAcademicYear(docId); // Delete academic year
+                    },
+                  ),
+                ),
+              ]);
+            }).toList(),
+          )
         ],
       ),
     );
