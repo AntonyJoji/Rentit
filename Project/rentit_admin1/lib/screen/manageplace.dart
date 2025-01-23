@@ -12,46 +12,87 @@ class _ManageplaceState extends State<Manageplace>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
-  String selectedDist = "";
-  List<Map<String, dynamic>> districtList = [];
+  String? selectedDist; // Changed to nullable to handle unselected state
+  List<Map<String, dynamic>> placeList = [];
+  List<Map<String, dynamic>> _distList = [];
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController placeController = TextEditingController();
+  
 
   Future<void> Manageplace() async {
     try {
       String place = placeController.text;
+      if (selectedDist == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please select a district"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
       await supabase.from('tbl_place').insert({
         'place_name': place,
+        'district_id': selectedDist, // Ensure district_id is added
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'place added',
+            'Place added successfully',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.green,
         ),
       );
-      print("Inserted");
       placeController.clear();
+      setState(() {
+        selectedDist = null; // Reset selection
+      });
     } catch (e) {
-      print("Error adding place");
+      print("Error adding place: $e");
     }
   }
 
   Future<void> fetchDist() async {
     try {
       final response = await supabase.from('tbl_district').select();
+      if (response != null && response is List<dynamic>) {
+        print(response);
+        setState(() {
+          _distList = response
+              .map((item) => {
+                    'id': item['id'].toString(),
+                    'district_name': item['district_name'],
+                  })
+              .toList();
+        });
+      }
+    } catch (e) {
+      print("Error fetching districts: $e");
+    }
+  }
+  Future<void> fetchPlace() async {
+    try {
+      final response = await supabase.from('tbl_place').select('*,tbl_district(*)');
+      // print(response);
       setState(() {
-        districtList = response;
+        placeList = List<Map<String, dynamic>>.from(response);
       });
-    } catch (e) {}
+      display();
+    } catch (e) {
+      print("ERROR FETCHING DISTRICT DATA: $e");
+    }
+  }
+   void display(){
+    print(placeList);
   }
 
   @override
   void initState() {
     super.initState();
     fetchDist();
+    fetchPlace();
+
   }
 
   @override
@@ -70,9 +111,9 @@ class _ManageplaceState extends State<Manageplace>
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label: Text(_isFormVisible ? "Cancel" : "Add place"),
+                label: Text(_isFormVisible ? "Cancel" : "Add Place"),
                 icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
-              )
+              ),
             ],
           ),
           AnimatedSize(
@@ -95,12 +136,13 @@ class _ManageplaceState extends State<Manageplace>
                             Expanded(
                               child: DropdownButtonFormField<String>(
                                 value: selectedDist,
+                                hint: const Text("Select District"),
                                 onChanged: (newValue) {
                                   setState(() {
-                                    selectedDist = newValue!;
+                                    selectedDist = newValue;
                                   });
                                 },
-                                items: districtList.map((district) {
+                                items: _distList.map((district) {
                                   return DropdownMenuItem<String>(
                                     value: district['id'],
                                     child: Text(district['district_name']),
@@ -108,9 +150,7 @@ class _ManageplaceState extends State<Manageplace>
                                 }).toList(),
                               ),
                             ),
-                            SizedBox(
-                              width: 10,
-                            ),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: TextFormField(
                                 controller: placeController,
@@ -134,12 +174,33 @@ class _ManageplaceState extends State<Manageplace>
                   )
                 : Container(),
           ),
-          Container(
-            height: 500,
-            child: const Center(
-              child: Text("Place Data"),
-            ),
-          ),
+          DataTable(
+            columns: [
+              DataColumn(label: Text("Sl.No")),
+              DataColumn(label: Text("District")),
+
+              DataColumn(label: Text("place")),
+              DataColumn(label: Text("Delete")),
+            ],
+            rows: placeList.asMap().entries.map((entry) {
+              print(entry.value);
+              return DataRow(cells: [
+                DataCell(Text((entry.key + 1).toString())), // Serial number
+                DataCell(Text(entry.value['tbl_district']['district_name'])),
+
+                DataCell(Text(entry.value['place_name'])),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      // _deleteAcademicYear(docId); // Delete academic year
+                    },
+                  ),
+                ),
+              ]);
+            }).toList(),
+          )
+          
         ],
       ),
     );
