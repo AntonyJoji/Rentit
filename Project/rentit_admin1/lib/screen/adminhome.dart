@@ -25,7 +25,7 @@ class _AdminHomeState extends State<AdminHome> {
   final List<Widget> _pages = [
    Manageplace(),
    Complaint(),
-   manageshop(),
+   Manageshop(),
    Managedistrict(),
    manageuser(),
    Viewbooking(),

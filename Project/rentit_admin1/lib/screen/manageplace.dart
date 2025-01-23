@@ -12,30 +12,47 @@ class _ManageplaceState extends State<Manageplace>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
+  String selectedDist = "";
+  List<Map<String, dynamic>> districtList = [];
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController placeController = TextEditingController();
 
-Future<void> Manageplace() async{
-  try {
-    String place = placeController.text;
-    await supabase.from('tbl_place').insert({
-      'place_name':place,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content:Text(
-          'place added',
-          style:TextStyle(color:Colors.white),
+  Future<void> Manageplace() async {
+    try {
+      String place = placeController.text;
+      await supabase.from('tbl_place').insert({
+        'place_name': place,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'place added',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
         ),
-        backgroundColor: Colors.green,
-         ),
-    );
-    print("Inserted");
-    placeController.clear();
-  } catch(e){
-    print("Error adding place");
+      );
+      print("Inserted");
+      placeController.clear();
+    } catch (e) {
+      print("Error adding place");
+    }
   }
-}
+
+  Future<void> fetchDist() async {
+    try {
+      final response = await supabase.from('tbl_district').select();
+      setState(() {
+        districtList = response;
+      });
+    } catch (e) {}
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchDist();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +70,8 @@ Future<void> Manageplace() async{
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label:Text(_isFormVisible ? "Cancel":"Add place"),
-                icon: Icon(_isFormVisible ? Icons.cancel:Icons.add),
+                label: Text(_isFormVisible ? "Cancel" : "Add place"),
+                icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
               )
             ],
           ),
@@ -76,6 +93,25 @@ Future<void> Manageplace() async{
                         Row(
                           children: [
                             Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: selectedDist,
+                                onChanged: (newValue) {
+                                  setState(() {
+                                    selectedDist = newValue!;
+                                  });
+                                },
+                                items: districtList.map((district) {
+                                  return DropdownMenuItem<String>(
+                                    value: district['id'],
+                                    child: Text(district['district_name']),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Expanded(
                               child: TextFormField(
                                 controller: placeController,
                                 decoration: const InputDecoration(
@@ -87,7 +123,7 @@ Future<void> Manageplace() async{
                             const SizedBox(width: 10),
                             ElevatedButton(
                               onPressed: () {
-                               Manageplace();
+                                Manageplace();
                               },
                               child: const Text("Add"),
                             ),
