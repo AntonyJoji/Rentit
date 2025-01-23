@@ -48,6 +48,7 @@ class _ManageplaceState extends State<Manageplace>
       setState(() {
         selectedDist = null; // Reset selection
       });
+       fetchPlace();
     } catch (e) {
       print("Error adding place: $e");
     }
@@ -56,15 +57,10 @@ class _ManageplaceState extends State<Manageplace>
   Future<void> fetchDist() async {
     try {
       final response = await supabase.from('tbl_district').select();
-      if (response != null && response is List<dynamic>) {
+      if (response.isNotEmpty) {
         print(response);
         setState(() {
-          _distList = response
-              .map((item) => {
-                    'id': item['id'].toString(),
-                    'district_name': item['district_name'],
-                  })
-              .toList();
+          _distList = response;
         });
       }
     } catch (e) {
@@ -86,6 +82,7 @@ class _ManageplaceState extends State<Manageplace>
    void display(){
     print(placeList);
   }
+  
 
   @override
   void initState() {
@@ -144,7 +141,7 @@ class _ManageplaceState extends State<Manageplace>
                                 },
                                 items: _distList.map((district) {
                                   return DropdownMenuItem<String>(
-                                    value: district['id'],
+                                    value: district['id'].toString(),
                                     child: Text(district['district_name']),
                                   );
                                 }).toList(),

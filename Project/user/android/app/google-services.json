@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "852043856014",
+    "project_id": "rentit-ce3ab",
+    "storage_bucket": "rentit-ce3ab.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:852043856014:android:8f24c2ce29e7832ea3b1df",
+        "android_client_info": {
+          "package_name": "com.example.user"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8pXBwvYxtyWcv4vaQbOVzJqbiAsdMRMA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

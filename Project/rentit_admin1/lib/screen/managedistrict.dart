@@ -44,7 +44,7 @@ class _ManagedistrictState extends State<Managedistrict>
       final response = await supabase.from('tbl_district').select();
       // print(response);
       setState(() {
-        districtList = List<Map<String, dynamic>>.from(response);
+        districtList = (response);
       });
       display();
     } catch (e) {
@@ -128,7 +128,7 @@ class _ManagedistrictState extends State<Managedistrict>
             columns: [
               DataColumn(label: Text("Sl.No")),
               DataColumn(label: Text("District")),
-              DataColumn(label: Text("DElete")),
+              DataColumn(label: Text("Delete")),
             ],
             rows: districtList.asMap().entries.map((entry) {
               print(entry.value);
