@@ -29,7 +29,7 @@ class _AdminHomeState extends State<AdminHome> {
    Managedistrict(),
    manageuser(),
    Viewbooking(),
-   Category(),
+   category(),
    subCategory(),
    deliveryboy(),
     const Center(child: Text('Settings Content')),

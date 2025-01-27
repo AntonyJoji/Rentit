@@ -1,17 +1,67 @@
 import 'package:flutter/material.dart';
+import 'package:rentit_admin1/main.dart';
 
-class Category extends StatefulWidget {
-  const Category({super.key});
+class category extends StatefulWidget {
+  const category({super.key});
 
   @override
-  State<Category> createState() => _CategoryState();
+  State<category> createState() => _categoryState();
 }
 
-class _CategoryState extends State<Category>
+class _categoryState extends State<category>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
   final Duration _animationDuration = const Duration(milliseconds: 300);
+  final TextEditingController categoryController = TextEditingController();
+
+  List<Map<String, dynamic>> categoryList = [];
+
+  Future<void> category() async {
+    try {
+      String category = categoryController.text;
+      await supabase.from('tbl_category').insert({
+        'category_name': category,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'category added',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      print("Inserted");
+      categoryController.clear();
+    } catch (e) {
+      print("Error adding category:$e");
+    }
+  }
+
+  Future<void> fetchcategory() async {
+    try {
+      final response = await supabase.from('tbl_category').select();
+      // print(response);
+      setState(() {
+        categoryList = (response);
+      });
+      display();
+    } catch (e) {
+      print("ERROR FETCHING category DATA: $e");
+    }
+  }
+
+  void display(){
+    print(categoryList);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    fetchcategory();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +72,15 @@ class _CategoryState extends State<Category>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Manage Category"),
+              const Text("Manage category"),
               ElevatedButton.icon(
                 onPressed: () {
                   setState(() {
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label: const Text("Add Category"),
-                icon: const Icon(Icons.add),
+                label: Text(_isFormVisible ? "Cancel" : "Add category"),
+                icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
               )
             ],
           ),
@@ -44,7 +94,7 @@ class _CategoryState extends State<Category>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Category Form",
+                          "category Form",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -53,8 +103,9 @@ class _CategoryState extends State<Category>
                           children: [
                             Expanded(
                               child: TextFormField(
+                                controller: categoryController,
                                 decoration: const InputDecoration(
-                                  labelText: "Category Name",
+                                  labelText: "category Name",
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -62,9 +113,7 @@ class _CategoryState extends State<Category>
                             const SizedBox(width: 10),
                             ElevatedButton(
                               onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  // Handle form submission logic here
-                                }
+                                category();
                               },
                               child: const Text("Add"),
                             ),
@@ -75,12 +124,29 @@ class _CategoryState extends State<Category>
                   )
                 : Container(),
           ),
-          Container(
-            height: 500,
-            child: const Center(
-              child: Text("Category Data"),
-            ),
-          ),
+          DataTable(
+            columns: [
+              DataColumn(label: Text("Sl.No")),
+              DataColumn(label: Text("category")),
+              DataColumn(label: Text("Delete")),
+            ],
+            rows: categoryList.asMap().entries.map((entry) {
+              print(entry.value);
+              return DataRow(cells: [
+                DataCell(Text((entry.key + 1).toString())), // Serial number
+                DataCell(Text(entry.value['category_name'])),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      fetchcategory();
+                      // _deleteAcademicYear(docId); // Delete academic year
+                    },
+                  ),
+                ),
+              ]);
+            }).toList(),
+          )
         ],
       ),
     );

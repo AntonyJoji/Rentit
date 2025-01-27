@@ -15,6 +15,7 @@ class _ManageplaceState extends State<Manageplace>
   String? selectedDist; // Changed to nullable to handle unselected state
   List<Map<String, dynamic>> placeList = [];
   List<Map<String, dynamic>> _distList = [];
+
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController placeController = TextEditingController();
   
@@ -82,7 +83,15 @@ class _ManageplaceState extends State<Manageplace>
    void display(){
     print(placeList);
   }
-  
+
+  Future<void> delPlace(String did) async {
+   try {
+      await supabase.from('tbl_place').delete().eq('place_id', did);
+    fetchDist();
+   } catch (e) {
+     print("ERROR: $e");
+   }
+  }
 
   @override
   void initState() {
@@ -189,8 +198,9 @@ class _ManageplaceState extends State<Manageplace>
                 DataCell(
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
+                    onPressed: () {delPlace(entry.value['place_id'].toString());
                       // _deleteAcademicYear(docId); // Delete academic year
+                      fetchDist();
                     },
                   ),
                 ),
