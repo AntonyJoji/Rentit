@@ -7,10 +7,10 @@ class Userregistration extends StatefulWidget {
   const Userregistration({super.key});
 
   @override
-  State<Userregistration> createState() => _ShopRegistrationState();
+  State<Userregistration> createState() => _userregistrationState();
 }
 
-class _ShopRegistrationState extends State<Userregistration> {
+class _userregistrationState extends State<Userregistration> {
   final TextEditingController _userNameController = TextEditingController();
   final TextEditingController _userContactController = TextEditingController();
   final TextEditingController _userEmailController = TextEditingController();
@@ -76,7 +76,7 @@ class _ShopRegistrationState extends State<Userregistration> {
 
   Future<void> storeData(String uid) async {
     try {
-      await Supabase.instance.client.from('tbl_shop').insert({
+      await Supabase.instance.client.from('tbl_user').insert({
         'user_id': uid,
         'user_name': _userNameController.text,
         'user_contact': _userContactController.text,
@@ -99,7 +99,7 @@ class _ShopRegistrationState extends State<Userregistration> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Shop Registration')),
+      appBar: AppBar(title: Text('User Registration')),
       body: Center(
         child: Container(
           width: 400, // Adjust width to make it compact
@@ -114,24 +114,24 @@ class _ShopRegistrationState extends State<Userregistration> {
               children: [
                 TextFormField(
                   controller: _userNameController,
-                  decoration: InputDecoration(labelText: 'Shop Name', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: 'user Name', border: OutlineInputBorder()),
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _userContactController,
-                  decoration: InputDecoration(labelText: 'Shop Contact', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: 'user Contact', border: OutlineInputBorder()),
                   keyboardType: TextInputType.phone,
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _userEmailController,
-                  decoration: InputDecoration(labelText: 'Shop Email', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: 'user Email', border: OutlineInputBorder()),
                   keyboardType: TextInputType.emailAddress,
                 ),
                 SizedBox(height: 12),
                 TextFormField(
                   controller: _userAddressController,
-                  decoration: InputDecoration(labelText: 'Shop Address', border: OutlineInputBorder()),
+                  decoration: InputDecoration(labelText: 'user Address', border: OutlineInputBorder()),
                 ),
                 SizedBox(height: 12),
                 Row(
@@ -175,7 +175,7 @@ class _ShopRegistrationState extends State<Userregistration> {
                   ],
                 ),
                 SizedBox(height: 12),
-                Text('Shop Logo'),
+                Text('user photo'),
                 GestureDetector(
                   onTap: () => _pickImage(true),
                   child: Container(
@@ -186,7 +186,7 @@ class _ShopRegistrationState extends State<Userregistration> {
                   ),
                 ),
                 SizedBox(height: 12),
-                Text('Shop Proof'),
+                Text('user id'),
                 GestureDetector(
                   onTap: () => _pickImage(false),
                   child: Container(
