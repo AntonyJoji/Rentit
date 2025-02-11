@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rentit_admin1/main.dart';
 
-
 class subCategory extends StatefulWidget {
   const subCategory ({super.key});
 
@@ -21,41 +20,6 @@ class _subCategoryState extends State<subCategory>
   final TextEditingController subCategoryController = TextEditingController();
   
 
-  Future<void> subCategory() async {
-    try {
-      String subCategory =subCategoryController.text;
-      if (selectedCategory == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please select a subCategory"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      await supabase.from('tbl_subCategory').insert({
-        'subCategory_name': subCategory,
-        'category_id': selectedCategory, // Ensure district_id is added
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'subcategory added successfully',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-      subCategoryController.clear();
-      setState(() {
-        selectedCategory = null; // Reset selection
-      });
-       fetchcategory();
-    } catch (e) {
-      print("Error adding subcategory: $e");
-    }
-  }
-
   Future<void> fetchcategory() async {
     try {
       final response = await supabase.from('tbl_category').select();
@@ -66,29 +30,63 @@ class _subCategoryState extends State<subCategory>
         });
       }
     } catch (e) {
-      print("Error fetching districts: $e");
+      print("Error fetching categories: $e");
     }
   }
+
   Future<void> fetchsubcategory() async {
     try {
       final response = await supabase.from('tbl_subcategory').select('*,tbl_category(*)');
-      // print(response);
       setState(() {
         subCategoryList = List<Map<String, dynamic>>.from(response);
       });
-      display();
     } catch (e) {
-      print("ERROR FETCHING category DATA: $e");
+      print("Error fetching subcategories: $e");
     }
   }
-   void display(){
-    print(subCategoryList);
+
+  Future<void> subCategory() async {
+    try {
+      String subCategoryName = subCategoryController.text;
+      if (selectedCategory == null || subCategoryName.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Please select a Category and enter a Subcategory name"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      await supabase.from('tbl_subcategory').insert({
+        'subcategory_name': subCategoryName,
+        'category_id': int.parse(selectedCategory!), // Ensure integer type
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Subcategory added successfully',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      subCategoryController.clear();
+      setState(() {
+        selectedCategory = null; // Reset selection
+      });
+      fetchsubcategory(); // Refresh subcategories instead of categories
+    } catch (e) {
+      print("Error adding subcategory: $e");
+    }
   }
 
   Future<void> delsubcategory(String did) async {
    try {
       await supabase.from('tbl_subcategory').delete().eq('subcategory_id', did);
-    fetchcategory();
+      fetchsubcategory();
    } catch (e) {
      print("ERROR: $e");
    }
@@ -99,7 +97,6 @@ class _subCategoryState extends State<subCategory>
     super.initState();
     fetchcategory();
     fetchsubcategory();
-
   }
 
   @override
@@ -133,7 +130,7 @@ class _subCategoryState extends State<subCategory>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "subcategory Form",
+                          "Subcategory Form",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -162,7 +159,7 @@ class _subCategoryState extends State<subCategory>
                               child: TextFormField(
                                 controller: subCategoryController,
                                 decoration: const InputDecoration(
-                                  labelText: "subcategory Name",
+                                  labelText: "Subcategory Name",
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -184,31 +181,27 @@ class _subCategoryState extends State<subCategory>
           DataTable(
             columns: [
               DataColumn(label: Text("Sl.No")),
-              DataColumn(label: Text("category")),
-
-              DataColumn(label: Text("subcategory")),
+              DataColumn(label: Text("Category")),
+              DataColumn(label: Text("Subcategory")),
               DataColumn(label: Text("Delete")),
             ],
             rows: subCategoryList.asMap().entries.map((entry) {
-              print(entry.value);
               return DataRow(cells: [
                 DataCell(Text((entry.key + 1).toString())), // Serial number
                 DataCell(Text(entry.value['tbl_category']['category_name'])),
-
                 DataCell(Text(entry.value['subcategory_name'])),
                 DataCell(
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {delsubcategory(entry.value['subcategory_id'].toString());
-                      // _deleteAcademicYear(docId); // Delete academic year
-                      fetchcategory();
+                    onPressed: () {
+                      delsubcategory(entry.value['subcategory_id'].toString());
+                      fetchsubcategory();
                     },
                   ),
                 ),
               ]);
             }).toList(),
           )
-          
         ],
       ),
     );

@@ -12,13 +12,12 @@ class _ManageplaceState extends State<Manageplace>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   bool _isFormVisible = false; // To manage form visibility
-  String? selectedDist; // Changed to nullable to handle unselected state
+  String? selectedDist; // Nullable to handle unselected state
   List<Map<String, dynamic>> placeList = [];
   List<Map<String, dynamic>> _distList = [];
 
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController placeController = TextEditingController();
-  
 
   Future<void> Manageplace() async {
     try {
@@ -36,6 +35,7 @@ class _ManageplaceState extends State<Manageplace>
         'place_name': place,
         'district_id': selectedDist, // Ensure district_id is added
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -45,11 +45,13 @@ class _ManageplaceState extends State<Manageplace>
           backgroundColor: Colors.green,
         ),
       );
+
       placeController.clear();
       setState(() {
         selectedDist = null; // Reset selection
       });
-       fetchPlace();
+
+      fetchPlace(); // Refresh place list
     } catch (e) {
       print("Error adding place: $e");
     }
@@ -59,7 +61,6 @@ class _ManageplaceState extends State<Manageplace>
     try {
       final response = await supabase.from('tbl_district').select();
       if (response.isNotEmpty) {
-        print(response);
         setState(() {
           _distList = response;
         });
@@ -68,29 +69,37 @@ class _ManageplaceState extends State<Manageplace>
       print("Error fetching districts: $e");
     }
   }
+
   Future<void> fetchPlace() async {
     try {
-      final response = await supabase.from('tbl_place').select('*,tbl_district(*)');
-      // print(response);
+      final response =
+          await supabase.from('tbl_place').select('*,tbl_district(*)');
       setState(() {
         placeList = List<Map<String, dynamic>>.from(response);
       });
-      display();
     } catch (e) {
-      print("ERROR FETCHING DISTRICT DATA: $e");
+      print("ERROR FETCHING PLACE DATA: $e");
     }
   }
-   void display(){
-    print(placeList);
-  }
 
-  Future<void> delPlace(String did) async {
-   try {
-      await supabase.from('tbl_place').delete().eq('place_id', did);
-    fetchDist();
-   } catch (e) {
-     print("ERROR: $e");
-   }
+  Future<void> delPlace(String placeId) async {
+    try {
+      await supabase.from('tbl_place').delete().eq('place_id', placeId);
+
+      // Remove the deleted item from the list
+      setState(() {
+        placeList.removeWhere((place) => place['place_id'].toString() == placeId);
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Place deleted successfully'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print("ERROR: $e");
+    }
   }
 
   @override
@@ -98,7 +107,6 @@ class _ManageplaceState extends State<Manageplace>
     super.initState();
     fetchDist();
     fetchPlace();
-
   }
 
   @override
@@ -150,7 +158,7 @@ class _ManageplaceState extends State<Manageplace>
                                 },
                                 items: _distList.map((district) {
                                   return DropdownMenuItem<String>(
-                                    value: district['id'].toString(),
+                                    value: district['district_id'].toString(),
                                     child: Text(district['district_name']),
                                   );
                                 }).toList(),
@@ -168,9 +176,7 @@ class _ManageplaceState extends State<Manageplace>
                             ),
                             const SizedBox(width: 10),
                             ElevatedButton(
-                              onPressed: () {
-                                Manageplace();
-                              },
+                              onPressed: Manageplace,
                               child: const Text("Add"),
                             ),
                           ],
@@ -181,33 +187,28 @@ class _ManageplaceState extends State<Manageplace>
                 : Container(),
           ),
           DataTable(
-            columns: [
+            columns: const [
               DataColumn(label: Text("Sl.No")),
               DataColumn(label: Text("District")),
-
-              DataColumn(label: Text("place")),
+              DataColumn(label: Text("Place")),
               DataColumn(label: Text("Delete")),
             ],
             rows: placeList.asMap().entries.map((entry) {
-              print(entry.value);
               return DataRow(cells: [
                 DataCell(Text((entry.key + 1).toString())), // Serial number
                 DataCell(Text(entry.value['tbl_district']['district_name'])),
-
                 DataCell(Text(entry.value['place_name'])),
                 DataCell(
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {delPlace(entry.value['place_id'].toString());
-                      // _deleteAcademicYear(docId); // Delete academic year
-                      fetchDist();
+                    onPressed: () {
+                      delPlace(entry.value['place_id'].toString());
                     },
                   ),
                 ),
               ]);
             }).toList(),
-          )
-          
+          ),
         ],
       ),
     );

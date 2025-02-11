@@ -34,6 +34,7 @@ class _categoryState extends State<category>
       );
       print("Inserted");
       categoryController.clear();
+      fetchcategory();
     } catch (e) {
       print("Error adding category:$e");
     }
@@ -42,7 +43,6 @@ class _categoryState extends State<category>
   Future<void> fetchcategory() async {
     try {
       final response = await supabase.from('tbl_category').select();
-      // print(response);
       setState(() {
         categoryList = (response);
       });
@@ -52,13 +52,30 @@ class _categoryState extends State<category>
     }
   }
 
-  void display(){
+  Future<void> deleteCategory(String categoryId) async {
+    try {
+      await supabase.from('tbl_category').delete().eq('category_id', categoryId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Category deleted',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      fetchcategory();
+    } catch (e) {
+      print("Error deleting category: $e");
+    }
+  }
+
+  void display() {
     print(categoryList);
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchcategory();
   }
@@ -131,7 +148,6 @@ class _categoryState extends State<category>
               DataColumn(label: Text("Delete")),
             ],
             rows: categoryList.asMap().entries.map((entry) {
-              print(entry.value);
               return DataRow(cells: [
                 DataCell(Text((entry.key + 1).toString())), // Serial number
                 DataCell(Text(entry.value['category_name'])),
@@ -139,8 +155,7 @@ class _categoryState extends State<category>
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      fetchcategory();
-                      // _deleteAcademicYear(docId); // Delete academic year
+                      deleteCategory(entry.value['category_id'].toString());
                     },
                   ),
                 ),

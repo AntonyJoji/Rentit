@@ -26,39 +26,50 @@ class _ManagedistrictState extends State<Managedistrict>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'district added',
+            'District added',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.green,
         ),
       );
-      print("Inserted");
       districtController.clear();
+      fetchDistrict(); // Refresh list after adding
     } catch (e) {
-      print("Error adding district:$e");
+      print("Error adding district: $e");
     }
   }
 
   Future<void> fetchDistrict() async {
     try {
       final response = await supabase.from('tbl_district').select();
-      // print(response);
       setState(() {
-        districtList = (response);
+        districtList = response;
       });
-      display();
     } catch (e) {
-      print("ERROR FETCHING DISTRICT DATA: $e");
+      print("Error fetching districts: $e");
     }
   }
 
-  void display(){
-    print(districtList);
+  Future<void> delDistrict(String districtId) async {
+    try {
+      await supabase.from('tbl_district').delete().eq('district_id', districtId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'District deleted successfully',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      fetchDistrict(); // Refresh list after deletion
+    } catch (e) {
+      print("Error deleting district: $e");
+    }
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchDistrict();
   }
@@ -72,14 +83,14 @@ class _ManagedistrictState extends State<Managedistrict>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Manage district"),
+              const Text("Manage District"),
               ElevatedButton.icon(
                 onPressed: () {
                   setState(() {
                     _isFormVisible = !_isFormVisible; // Toggle form visibility
                   });
                 },
-                label: Text(_isFormVisible ? "Cancel" : "Add district"),
+                label: Text(_isFormVisible ? "Cancel" : "Add District"),
                 icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
               )
             ],
@@ -94,7 +105,7 @@ class _ManagedistrictState extends State<Managedistrict>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "district Form",
+                          "District Form",
                           style: TextStyle(
                               fontSize: 16, fontWeight: FontWeight.bold),
                         ),
@@ -105,7 +116,7 @@ class _ManagedistrictState extends State<Managedistrict>
                               child: TextFormField(
                                 controller: districtController,
                                 decoration: const InputDecoration(
-                                  labelText: "district Name",
+                                  labelText: "District Name",
                                   border: OutlineInputBorder(),
                                 ),
                               ),
@@ -125,13 +136,12 @@ class _ManagedistrictState extends State<Managedistrict>
                 : Container(),
           ),
           DataTable(
-            columns: [
+            columns: const [
               DataColumn(label: Text("Sl.No")),
               DataColumn(label: Text("District")),
               DataColumn(label: Text("Delete")),
             ],
             rows: districtList.asMap().entries.map((entry) {
-              print(entry.value);
               return DataRow(cells: [
                 DataCell(Text((entry.key + 1).toString())), // Serial number
                 DataCell(Text(entry.value['district_name'])),
@@ -139,13 +149,13 @@ class _ManagedistrictState extends State<Managedistrict>
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      // _deleteAcademicYear(docId); // Delete academic year
+                      delDistrict(entry.value['district_id'].toString());
                     },
                   ),
                 ),
               ]);
             }).toList(),
-          )
+          ),
         ],
       ),
     );
