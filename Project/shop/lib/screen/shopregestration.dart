@@ -1,8 +1,7 @@
-//import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:shop/main.dart';
-//import 'package:file_picker/file_picker.dart'; // For image picking
-//import 'dart:io'; // For File handling
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ShopRegistration extends StatefulWidget {
   const ShopRegistration({super.key});
@@ -16,132 +15,83 @@ class _ShopRegistrationState extends State<ShopRegistration> {
   final TextEditingController _shopContactController = TextEditingController();
   final TextEditingController _shopEmailController = TextEditingController();
   final TextEditingController _shopAddressController = TextEditingController();
-  final TextEditingController _placeIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   String? selectedDist;
   String? selectedPlace;
-
   List<Map<String, dynamic>> _distList = [];
   List<Map<String, dynamic>> _placeList = [];
-// PlatformFile? _shopLogo; // For storing shop logo image
-// PlatformFile? _shopProof; // For storing shop proof image
+  PlatformFile? _shopLogo;
+  PlatformFile? _shopProof;
 
-  // Function to handle form submission
-  // void _submitForm() {
-  //   // Perform registration logic here
-  //   print('Shop Name: ${_shopNameController.text}');
-  //   print('Shop Contact: ${_shopContactController.text}');
-  //   print('Shop Email: ${_shopEmailController.text}');
-  //   print('Shop Address: ${_shopAddressController.text}');
-  //   print('Place ID: ${_placeIdController.text}');
-  //   print('Password: ${_passwordController.text}');
-  //   if (_shopLogo != null) print('Shop Logo: ${_shopLogo!.path}');
-  //   if (_shopProof != null) print('Shop Proof: ${_shopProof!.path}');
-  // }
-
-  Future<void> Manageplace() async {
-    try {
-      String place = _placeIdController.text;
-      if (selectedDist == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Please select a district"),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      await supabase.from('tbl_place').insert({
-        'place_name': place,
-        'district_id': selectedDist, // Ensure district_id is added
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Place added successfully',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-      _placeIdController.clear();
+  Future<void> _pickImage(bool isLogo) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null) {
       setState(() {
-        selectedDist = null; // Reset selection
+        if (isLogo) {
+          _shopLogo = result.files.first;
+        } else {
+          _shopProof = result.files.first;
+        }
       });
-    } catch (e) {
-      print("Error adding place: $e");
     }
   }
 
   Future<void> fetchDist() async {
     try {
-      final response = await supabase.from('tbl_district').select();
-      if (response.isNotEmpty) {
-        print(response);
-        setState(() {
-          _distList = response;
-        });
-      }
+      final response = await Supabase.instance.client.from('tbl_district').select();
+      setState(() {
+        _distList = List<Map<String, dynamic>>.from(response);
+      });
     } catch (e) {
       print("Error fetching districts: $e");
     }
   }
 
-  Future<void> fetchPlace(String? id) async {
+  Future<void> fetchPlace(String id) async {
     try {
-      final response =
-          await supabase.from('tbl_place').select().eq('district_id', id!);
-      // print(response);
+      final response = await Supabase.instance.client.from('tbl_place').select().eq('district_id', id);
       setState(() {
-        _placeList = response;
+        _placeList = List<Map<String, dynamic>>.from(response);
       });
-      display();
     } catch (e) {
-      print("ERROR FETCHING DISTRICT DATA: $e");
+      print("Error fetching places: $e");
     }
-  }
-
-  void display() {
-    print(_placeList);
   }
 
   Future<void> register() async {
     try {
-      final auth = await supabase.auth.signUp(
-          password: _passwordController.text, email: _shopEmailController.text);
-      final uid = auth.user!.id;
-      if (uid.isNotEmpty || uid != "") {
-        storeData(uid);
+      final auth = await Supabase.instance.client.auth.signUp(
+        password: _passwordController.text,
+        email: _shopEmailController.text,
+      );
+      final uid = auth.user?.id;
+      if (uid != null && uid.isNotEmpty) {
+        await storeData(uid);
       }
     } catch (e) {
-      print("ERROR IN AUTHENTICATION:$e");
+      print("Error in authentication: $e");
     }
   }
 
-  Future<void> storeData(uid) async {
+  Future<void> storeData(String uid) async {
     try {
-      String name = _shopNameController.text;
-      String contact = _shopContactController.text;
-      String address = _shopAddressController.text;
-      String email = _shopEmailController.text;
-      String password = _passwordController.text;
-      await supabase.from('tbl_shop').insert({
+      await Supabase.instance.client.from('tbl_shop').insert({
         'shop_id': uid,
-        'shop_name': name,
-        'shop_contact': contact,
-        'shop_address': address,
-        'shop_email': email,
-        'shop_password': password
+        'shop_name': _shopNameController.text,
+        'shop_contact': _shopContactController.text,
+        'shop_address': _shopAddressController.text,
+        'shop_email': _shopEmailController.text,
+        'shop_password': _passwordController.text,
+        'place_id': selectedPlace,
       });
     } catch (e) {
-      print("ERROR INSERTING DATA:$e");
+      print("Error inserting data: $e");
     }
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     fetchDist();
   }
@@ -149,174 +99,123 @@ class _ShopRegistrationState extends State<ShopRegistration> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Shop Registration'),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Shop Name
-            TextFormField(
-              controller: _shopNameController,
-              decoration: InputDecoration(
-                labelText: 'Shop Name',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // Shop Contact
-            TextFormField(
-              controller: _shopContactController,
-              decoration: InputDecoration(
-                labelText: 'Shop Contact',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-            SizedBox(height: 16),
-
-            // Shop Email
-            TextFormField(
-              controller: _shopEmailController,
-              decoration: InputDecoration(
-                labelText: 'Shop Email',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.emailAddress,
-            ),
-            SizedBox(height: 16),
-
-            // Shop Address
-            TextFormField(
-              controller: _shopAddressController,
-              decoration: InputDecoration(
-                labelText: 'Shop Address',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-
-            // Place ID
-            Row(
+      appBar: AppBar(title: Text('Shop Registration')),
+      body: Center(
+        child: Container(
+          width: 400, // Adjust width to make it compact
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+          ),
+          child: SingleChildScrollView(
+            child: Column(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedDist,
-                    hint: const Text("Select District"),
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedDist = newValue;
-                      });
-                      fetchPlace(newValue);
-                    },
-                    items: _distList.map((district) {
-                      return DropdownMenuItem<String>(
-                        value: district['district_id'].toString(),
-                        child: Text(district['district_name']),
-                      );
-                    }).toList(),
-                  ),
+                TextFormField(
+                  controller: _shopNameController,
+                  decoration: InputDecoration(labelText: 'Shop Name', border: OutlineInputBorder()),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedPlace,
-                    hint: const Text("Select place"),
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedPlace = newValue;
-                      });
-                    },
-                    items: _placeList.map((place) {
-                      return DropdownMenuItem<String>(
-                        value: place['place_id'].toString(),
-                        child: Text(place['place_name']),
-                      );
-                    }).toList(),
-                  ),
+                SizedBox(height: 12),
+                TextFormField(
+                  controller: _shopContactController,
+                  decoration: InputDecoration(labelText: 'Shop Contact', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.phone,
                 ),
-                const SizedBox(width: 10),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // Shop Logo
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                SizedBox(height: 12),
+                TextFormField(
+                  controller: _shopEmailController,
+                  decoration: InputDecoration(labelText: 'Shop Email', border: OutlineInputBorder()),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 12),
+                TextFormField(
+                  controller: _shopAddressController,
+                  decoration: InputDecoration(labelText: 'Shop Address', border: OutlineInputBorder()),
+                ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedDist,
+                        hint: Text("Select District"),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedDist = newValue;
+                            fetchPlace(newValue!);
+                          });
+                        },
+                        items: _distList.map((district) {
+                          return DropdownMenuItem<String>(
+                            value: district['district_id'].toString(),
+                            child: Text(district['district_name']),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedPlace,
+                        hint: Text("Select Place"),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedPlace = newValue;
+                          });
+                        },
+                        items: _placeList.map((place) {
+                          return DropdownMenuItem<String>(
+                            value: place['place_id'].toString(),
+                            child: Text(place['place_name']),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
                 Text('Shop Logo'),
-                SizedBox(height: 8),
-                // GestureDetector(
-                //   onTap: _pickShopLogo,
-                //   child: Container(
-                //     width: double.infinity,
-                //     height: 100,
-                //     decoration: BoxDecoration(
-                //       border: Border.all(color: Colors.grey),
-                //       borderRadius: BorderRadius.circular(8),
-                //     ),
-                //     child: _shopLogo == null
-                //         ? Center(child: Icon(Icons.add_a_photo, size: 40))
-                //         : Image.file(_shopLogo!, fit: BoxFit.cover),
-                //   ),
-                // ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // Shop Proof
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Shop Proof'),
-                SizedBox(height: 8),
-                // GestureDetector(
-                //   onTap: _pickShopProof,
-                //   child: Container(
-                //     width: double.infinity,
-                //     height: 100,
-                //     decoration: BoxDecoration(
-                //       border: Border.all(color: Colors.grey),
-                //       borderRadius: BorderRadius.circular(8),
-                //     ),
-                //     child: _shopProof == null
-                //         ? Center(child: Icon(Icons.add_a_photo, size: 40))
-                //         : Image.file(_shopProof!, fit: BoxFit.cover),
-                //   ),
-                // ),
-              ],
-            ),
-            SizedBox(height: 16),
-
-            // Password
-            TextFormField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
-            ),
-            SizedBox(height: 24),
-
-            // Submit Button
-            ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                GestureDetector(
+                  onTap: () => _pickImage(true),
+                  child: Container(
+                    width: double.infinity,
+                    height: 80,
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
+                    child: _shopLogo == null ? Center(child: Icon(Icons.add_a_photo, size: 40)) : Image.file(File(_shopLogo!.path!), fit: BoxFit.cover),
                   ),
                 ),
-                onPressed: () {
-                  register();
-                },
-                child: Text('Submit'))
-          ],
+                SizedBox(height: 12),
+                Text('Shop Proof'),
+                GestureDetector(
+                  onTap: () => _pickImage(false),
+                  child: Container(
+                    width: double.infinity,
+                    height: 80,
+                    decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
+                    child: _shopProof == null ? Center(child: Icon(Icons.add_a_photo, size: 40)) : Image.file(File(_shopProof!.path!), fit: BoxFit.cover),
+                  ),
+                ),
+                SizedBox(height: 12),
+                TextFormField(
+                  controller: _passwordController,
+                  decoration: InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                  obscureText: true,
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: register,
+                    child: Text('Submit'),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
+  
