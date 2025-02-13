@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:user/screen/cart.dart';
 import 'package:user/screen/productpage.dart';
+import 'package:user/screen/settingsPage.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -53,7 +54,14 @@ class UserHomePage extends StatelessWidget {
             ListTile(
               leading: Icon(Icons.settings),
               title: Text('Settings'),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SettingsPage(), // Fixed constructor reference
+                              ),
+                );
+              }
             ),
             ListTile(
               leading: Icon(Icons.logout),
