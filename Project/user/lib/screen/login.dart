@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:user/screen/userRegistration.dart';
-import 'package:user/screen/userhomepage';
+import 'package:user/screen/userhomepage.dart'; // Fixed import by adding .dart extension
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({super.key});
@@ -62,10 +62,10 @@ class _UserLoginPageState extends State<UserLoginPage> {
                    Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const UserHomePage(),
+                                builder: (context) => const UserHomePage(), // Fixed constructor reference
                               ),
                             );
-                }, // Add login functionality
+                },
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
@@ -76,7 +76,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
               ),
               SizedBox(height: 10),
               TextButton(
-                onPressed: () {}, // Add forgot password functionality
+                onPressed: () {},
                 child: Text("Forgot Password?"),
               ),
               TextButton(
@@ -87,7 +87,7 @@ class _UserLoginPageState extends State<UserLoginPage> {
                             builder: (context) => const Userregistration(),
                           ),
                         );
-                }, // Navigate to Registration Page
+                },
                 child: Text("Don't have an account? Register"),
               ),
             ],

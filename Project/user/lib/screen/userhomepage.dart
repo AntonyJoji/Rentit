@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:user/screen/cart.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -12,7 +13,10 @@ class UserHomePage extends StatelessWidget {
         actions: [
           IconButton(
             icon: Icon(Icons.shopping_cart),
-            onPressed: () {},
+            onPressed: () {
+            Navigator.push(context, 
+            MaterialPageRoute(builder:(context) => CartPage()));
+            },
           ),
         ],
       ),
