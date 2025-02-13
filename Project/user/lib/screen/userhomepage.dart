@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:user/screen/cart.dart';
+import 'package:user/screen/productpage.dart';
 
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
@@ -14,8 +15,7 @@ class UserHomePage extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.shopping_cart),
             onPressed: () {
-            Navigator.push(context, 
-            MaterialPageRoute(builder:(context) => CartPage()));
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CartPage()));
             },
           ),
         ],
@@ -108,7 +108,19 @@ class UserHomePage extends StatelessWidget {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ProductPage(product: {
+                                          'name': 'Tool ${index + 1}',
+                                          'image': 'https://via.placeholder.com/250',
+                                          'description': 'This is a description for Tool ${index + 1}.',
+                                          'price': 100,
+                                        }),
+                                      ),
+                                    );
+                                  },
                                   child: Text('Rent Now'),
                                 ),
                               ),
