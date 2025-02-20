@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:user/screen/cart.dart';
+import 'package:user/screen/login.dart';
 import 'package:user/screen/productpage.dart';
 import 'package:user/screen/settingsPage.dart';
-
 class UserHomePage extends StatelessWidget {
   const UserHomePage({super.key});
 
@@ -56,17 +56,24 @@ class UserHomePage extends StatelessWidget {
               title: Text('Settings'),
               onTap: () {
                 Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => SettingsPage(), // Fixed constructor reference
-                              ),
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SettingsPage(),
+                  ),
                 );
-              }
+              },
             ),
             ListTile(
               leading: Icon(Icons.logout),
               title: Text('Logout'),
-              onTap: () {},
+              onTap: () {
+                // Navigate to login page and remove all previous routes
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => UserLoginPage()),
+                  (route) => false, // Removes all previous routes
+                );
+              },
             ),
           ],
         ),
