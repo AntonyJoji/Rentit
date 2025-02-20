@@ -206,7 +206,9 @@ class _userregistrationState extends State<Userregistration> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: register,
+                    onPressed: () {
+                      register();
+                    },
                     child: Text('Submit'),
                   ),
                 ),

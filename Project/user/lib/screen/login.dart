@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:user/main.dart';
 import 'package:user/screen/userRegistration.dart';
 import 'package:user/screen/userhomepage.dart'; // Fixed import by adding .dart extension
+
 
 class UserLoginPage extends StatefulWidget {
   const UserLoginPage({super.key});
@@ -12,7 +14,28 @@ class UserLoginPage extends StatefulWidget {
 class _UserLoginPageState extends State<UserLoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
   bool _obscurePassword = true;
+
+  Future<void> login() async {
+      try {
+     
+      await supabase.auth.signInWithPassword(
+          password: _passwordController.text,
+          email: _emailController.text);
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserHomePage(),
+          ));
+    }
+       catch (e) {
+        print("Error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login failed: ${e.toString()}")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,12 +82,8 @@ class _UserLoginPageState extends State<UserLoginPage> {
               SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                   Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const UserHomePage(), // Fixed constructor reference
-                              ),
-                            );
+                  print("Button");
+                  login();
                 },
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
