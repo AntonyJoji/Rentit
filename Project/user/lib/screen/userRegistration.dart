@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:user/screen/login.dart';
 
 class Userregistration extends StatefulWidget {
   const Userregistration({super.key});
@@ -208,6 +209,12 @@ class _userregistrationState extends State<Userregistration> {
                   child: ElevatedButton(
                     onPressed: () {
                       register();
+                       Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserLoginPage (), // Fixed constructor reference
+                              ),
+                            );
                     },
                     child: Text('Submit'),
                   ),
