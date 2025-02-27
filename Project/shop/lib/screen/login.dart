@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shop/screen/shopHome.dart';
-import 'package:shop/screen/shopregestration.dart'; // Import your registration page
+import 'package:shop/screen/shopregestration.dart';
 
 class ShopLogin extends StatefulWidget {
   const ShopLogin({super.key});
@@ -10,24 +11,59 @@ class ShopLogin extends StatefulWidget {
 }
 
 class _ShopLoginState extends State<ShopLogin> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final SupabaseClient supabase = Supabase.instance.client;
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in all fields.')),
+      );
+      return;
+    }
+
+    try {
+      final response = await supabase
+          .from('tbl_shop')
+          .select()
+          .eq('shop_email', email)
+          .maybeSingle();
+
+      if (response != null && response['shop_password'] == password) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const Shophome()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid email or password.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration:
-            BoxDecoration(color: const Color.fromARGB(255, 242, 241, 241)),
-        child: Form(
-            child: Center(
+        decoration: BoxDecoration(color: Color(0xFFF2F1F1)),
+        child: Center(
           child: Column(
             children: [
-              SizedBox(
-                height: 50,
-              ),
+              SizedBox(height: 50),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.all(15),
+                    padding: EdgeInsets.all(15),
                     child: Image.asset(
                       'assets/ss.jpg',
                       width: 40,
@@ -36,126 +72,77 @@ class _ShopLoginState extends State<ShopLogin> {
                   ),
                   Text(
                     'RENTIT',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              SizedBox(
-                height: 20,
-              ),
+              SizedBox(height: 20),
               Container(
                 width: 300,
-                height: 450, // Increased height to accommodate the new link
+                height: 450,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(5),
-                  color: const Color.fromARGB(196, 255, 255, 255),
+                  color: Colors.white,
                 ),
                 child: Column(
                   children: [
-                    SizedBox(
-                      height: 20,
-                    ),
-                    Text(
-                      'Login',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 15,
-                    ),
+                    SizedBox(height: 20),
+                    Text('Login', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 15),
                     Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: EdgeInsets.all(20.0),
                       child: TextFormField(
+                        controller: _emailController,
                         decoration: InputDecoration(
-                            hintStyle: TextStyle(fontSize: 12),
-                            hintText: 'Email',
-                            border: UnderlineInputBorder(),
-                            prefixIcon: Icon(Icons.email)),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: TextFormField(
-                        decoration: InputDecoration(
-                            hintStyle: TextStyle(fontSize: 12),
-                            hintText: 'Password',
-                            border: UnderlineInputBorder(),
-                            prefixIcon: Icon(Icons.password),
-                            suffixIcon: IconButton(
-                              icon: Icon(Icons.visibility),
-                              onPressed: () {},
-                            )),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(15.0),
-                          child: Text(
-                            'forgot password?',
-                            style: TextStyle(
-                              color: const Color.fromARGB(255, 27, 150, 250),
-                            ),
-                          ),
+                          hintText: 'Email',
+                          border: UnderlineInputBorder(),
+                          prefixIcon: Icon(Icons.email),
                         ),
-                      ],
+                      ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  const Color.fromARGB(255, 64, 146, 214),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 100, vertical: 18),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(5))),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const Shophome(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'Login',
-                            style: TextStyle(color: Colors.white),
-                          )),
+                      padding: EdgeInsets.all(20.0),
+                      child: TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          border: UnderlineInputBorder(),
+                          prefixIcon: Icon(Icons.lock),
+                          suffixIcon: Icon(Icons.visibility),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 10), // Space between button and link
+                    Padding(
+                      padding: EdgeInsets.all(10.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF4092D6),
+                          padding: EdgeInsets.symmetric(horizontal: 100, vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+                        ),
+                        onPressed: _login,
+                        child: Text('Login', style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
                     TextButton(
                       onPressed: () {
-                        // Navigate to the registration page
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const ShopRegistration(),
-                          ),
+                          MaterialPageRoute(builder: (context) => const ShopRegistration()),
                         );
                       },
                       child: Text(
-                        'Don\'t have an account? Register here',
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14,
-                        ),
+                        "Don't have an account? Register here",
+                        style: TextStyle(color: Colors.blue, fontSize: 14),
                       ),
                     ),
                   ],
                 ),
-              )
+              ),
             ],
           ),
-        )),
+        ),
       ),
     );
   }

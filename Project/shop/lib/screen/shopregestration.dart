@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart'; // Added for kIsWeb
 
 class ShopRegistration extends StatefulWidget {
   const ShopRegistration({super.key});
@@ -182,7 +183,11 @@ class _ShopRegistrationState extends State<ShopRegistration> {
                     width: double.infinity,
                     height: 80,
                     decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                    child: _shopLogo == null ? Center(child: Icon(Icons.add_a_photo, size: 40)) : Image.file(File(_shopLogo!.path!), fit: BoxFit.cover),
+                    child: _shopLogo == null
+                        ? Center(child: Icon(Icons.add_a_photo, size: 40))
+                        : kIsWeb
+                            ? Image.memory(_shopLogo!.bytes!, fit: BoxFit.cover)
+                            : Image.file(File(_shopLogo!.path!), fit: BoxFit.cover),
                   ),
                 ),
                 SizedBox(height: 12),
@@ -193,7 +198,11 @@ class _ShopRegistrationState extends State<ShopRegistration> {
                     width: double.infinity,
                     height: 80,
                     decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                    child: _shopProof == null ? Center(child: Icon(Icons.add_a_photo, size: 40)) : Image.file(File(_shopProof!.path!), fit: BoxFit.cover),
+                    child: _shopProof == null
+                        ? Center(child: Icon(Icons.add_a_photo, size: 40))
+                        : kIsWeb
+                            ? Image.memory(_shopProof!.bytes!, fit: BoxFit.cover)
+                            : Image.file(File(_shopProof!.path!), fit: BoxFit.cover),
                   ),
                 ),
                 SizedBox(height: 12),
@@ -218,4 +227,3 @@ class _ShopRegistrationState extends State<ShopRegistration> {
     );
   }
 }
-  
