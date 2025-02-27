@@ -11,14 +11,15 @@ class SideBar extends StatefulWidget {
 class _SideBarState extends State<SideBar> {
   final List<String> pages = [
     "Dashboard",
-    "ManageBooking",
-    "Manageproduct",
+    "Manage Booking",
+    "ADD Product",
+    "Manage Product",
   ];
   final List<IconData> icons = [
     Icons.map,
     Icons.fact_check, 
     Icons.storefront, 
-   
+    Icons.production_quantity_limits
   ];
 
   @override

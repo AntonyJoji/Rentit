@@ -3,6 +3,7 @@ import 'package:shop/component/appbar.dart';
 import 'package:shop/component/sidebar.dart';
 import 'package:shop/screen/dashboard.dart';
 import 'package:shop/screen/manageBooking.dart';
+import 'package:shop/screen/addProduct.dart';
 import 'package:shop/screen/manageProduct.dart';
 
 
@@ -21,7 +22,8 @@ class _ShopHomeState extends State<Shophome> {
   final List<Widget> _pages = [
     Dashboard(),
     Managebooking(),
-    ManageProduct(),
+    addProduct(),
+    manageProduct(),
   
     const Center(child: Text('Settings Content')),
   ];
