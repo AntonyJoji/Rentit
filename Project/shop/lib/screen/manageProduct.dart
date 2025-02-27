@@ -2,8 +2,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shop/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:intl/intl.dart';
 
 class ManageProduct extends StatefulWidget {
   const ManageProduct({super.key});
@@ -19,8 +20,6 @@ class _ManageProductState extends State<ManageProduct> {
 
   String? _selectedCategory;
   String? _selectedSubcategory;
-  File? _image;
-  Uint8List? _webImage;
 
   List<Map<String, dynamic>> categories = [];
   List<Map<String, dynamic>> subcategories = [];
@@ -29,6 +28,43 @@ class _ManageProductState extends State<ManageProduct> {
   void initState() {
     super.initState();
     _fetchCategories();
+  }
+
+  PlatformFile? pickedImage;
+
+  Future<void> handleImagePick() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: false, // Only single file upload
+    );
+    if (result != null) {
+      setState(() {
+        pickedImage = result.files.first;
+      });
+    }
+  }
+
+  Future<String?> photoUpload() async {
+    try {
+      final bucketName = 'shop'; // Replace with your bucket name
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final fileExtension =
+          pickedImage!.name.split('.').last; // Get the file extension
+      final fileName =
+          "${timestamp}.${fileExtension}"; // New file name with timestamp
+      final filePath = fileName;
+
+      await supabase.storage.from(bucketName).uploadBinary(
+            filePath,
+            pickedImage!.bytes!, // Use file.bytes for Flutter Web
+          );
+
+      final publicUrl =
+          supabase.storage.from(bucketName).getPublicUrl(filePath);
+      return publicUrl;
+    } catch (e) {
+      print("Error photo upload: $e");
+      return null;
+    }
   }
 
   Future<void> _fetchCategories() async {
@@ -53,77 +89,10 @@ class _ManageProductState extends State<ManageProduct> {
     }
   }
 
-  Future<void> _pickImage() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      allowMultiple: false,
-    );
-    if (result != null) {
-      if (kIsWeb) {
-        setState(() {
-          _webImage = result.files.single.bytes;
-        });
-      } else {
-        setState(() {
-          _image = File(result.files.single.path!);
-        });
-      }
-    }
-  }
-
   Future<void> _submitProduct() async {
-    if (_nameController.text.isEmpty ||
-        _priceController.text.isEmpty ||
-        _detailsController.text.isEmpty ||
-        _selectedCategory == null ||
-        _selectedSubcategory == null ||
-        (_image == null && _webImage == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
-      return;
-    }
-
     try {
-      String? imageUrl;
-      final storage = Supabase.instance.client.storage;
-      final fileName = 'items/\${DateTime.now().millisecondsSinceEpoch}.png';
-
-      if (_webImage != null) {
-        print("Uploading Web Image: \$fileName");
-        await storage.from('shop').uploadBinary(fileName, _webImage!);
-        imageUrl = storage.from('shop').getPublicUrl(fileName);
-        print("Web Image Uploaded: \$imageUrl");
-      } else if (_image != null) {
-        print("Uploading File Image: \$fileName");
-        await storage.from('shop').upload(fileName, _image!);
-        imageUrl = storage.from('shop').getPublicUrl(fileName);
-        print("File Image Uploaded: \$imageUrl");
-      }
-
-      if (imageUrl == null) {
-        throw Exception("Image upload failed");
-      }
-
-      print("Inserting into DB...");
-      await Supabase.instance.client.from('tbl_item').insert({
-        'item_name': _nameController.text,
-        'item_rentprice': double.parse(_priceController.text),
-        'item_detail': _detailsController.text,
-        'item_photo': imageUrl,
-        'category_id': int.parse(_selectedCategory!),
-        'subcategory_id': int.parse(_selectedSubcategory!),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Item added successfully!")),
-      );
-    } catch (e) {
-      print("Error: \${e.toString()}");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: \${e.toString()}")),
-      );
-    }
+      String? url = await photoUpload();
+    } catch (e) {}
   }
 
   @override
@@ -195,22 +164,42 @@ class _ManageProductState extends State<ManageProduct> {
                   maxLines: 3,
                 ),
                 const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _pickImage,
-                  child: const Text("Add Image"),
+                SizedBox(
+                  height: 120,
+                  width: 120,
+                  child: pickedImage == null
+                      ? GestureDetector(
+                          onTap: handleImagePick,
+                          child: Icon(
+                            Icons.add_a_photo,
+                            color: Color(0xFF0277BD),
+                            size: 50,
+                          ),
+                        )
+                      : GestureDetector(
+                          onTap: handleImagePick,
+                          child: ClipRRect(
+                            child: pickedImage!.bytes != null
+                                ? Image.memory(
+                                    Uint8List.fromList(
+                                        pickedImage!.bytes!), // For web
+                                    fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    File(pickedImage!
+                                        .path!), // For mobile/desktop
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
+                        ),
                 ),
-                const SizedBox(height: 10),
-                if (_image != null || _webImage != null)
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey),
-                    ),
-                    child: kIsWeb && _webImage != null
-                        ? Image.memory(_webImage!, fit: BoxFit.cover)
-                        : (_image != null ? Image.file(_image!, fit: BoxFit.cover) : Container()),
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
                   ),
+                ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _submitProduct,
