@@ -16,7 +16,6 @@ class _ManageProductState extends State<ManageProduct> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _detailsController = TextEditingController();
-  final TextEditingController _stockController = TextEditingController();
 
   String? _selectedCategory;
   String? _selectedSubcategory;
@@ -76,7 +75,6 @@ class _ManageProductState extends State<ManageProduct> {
     if (_nameController.text.isEmpty ||
         _priceController.text.isEmpty ||
         _detailsController.text.isEmpty ||
-        _stockController.text.isEmpty ||
         _selectedCategory == null ||
         _selectedSubcategory == null ||
         (_image == null && _webImage == null)) {
@@ -89,18 +87,18 @@ class _ManageProductState extends State<ManageProduct> {
     try {
       String? imageUrl;
       final storage = Supabase.instance.client.storage;
-      final fileName = 'items/${DateTime.now().millisecondsSinceEpoch}.png';
+      final fileName = 'items/\${DateTime.now().millisecondsSinceEpoch}.png';
 
       if (_webImage != null) {
-        print("Uploading Web Image: $fileName");
-        await storage.from('item_images').uploadBinary(fileName, _webImage!);
-        imageUrl = storage.from('item_images').getPublicUrl(fileName);
-        print("Web Image Uploaded: $imageUrl");
+        print("Uploading Web Image: \$fileName");
+        await storage.from('shop').uploadBinary(fileName, _webImage!);
+        imageUrl = storage.from('shop').getPublicUrl(fileName);
+        print("Web Image Uploaded: \$imageUrl");
       } else if (_image != null) {
-        print("Uploading File Image: $fileName");
-        await storage.from('item_images').upload(fileName, _image!);
-        imageUrl = storage.from('item_images').getPublicUrl(fileName);
-        print("File Image Uploaded: $imageUrl");
+        print("Uploading File Image: \$fileName");
+        await storage.from('shop').upload(fileName, _image!);
+        imageUrl = storage.from('shop').getPublicUrl(fileName);
+        print("File Image Uploaded: \$imageUrl");
       }
 
       if (imageUrl == null) {
@@ -111,9 +109,8 @@ class _ManageProductState extends State<ManageProduct> {
       await Supabase.instance.client.from('tbl_item').insert({
         'item_name': _nameController.text,
         'item_rentprice': double.parse(_priceController.text),
-        'item_details': _detailsController.text,
+        'item_detail': _detailsController.text,
         'item_photo': imageUrl,
-        'item_stock': int.parse(_stockController.text),
         'category_id': int.parse(_selectedCategory!),
         'subcategory_id': int.parse(_selectedSubcategory!),
       });
@@ -122,9 +119,9 @@ class _ManageProductState extends State<ManageProduct> {
         const SnackBar(content: Text("Item added successfully!")),
       );
     } catch (e) {
-      print("Error: ${e.toString()}");
+      print("Error: \${e.toString()}");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: ${e.toString()}")),
+        SnackBar(content: Text("Error: \${e.toString()}")),
       );
     }
   }
@@ -197,19 +194,12 @@ class _ManageProductState extends State<ManageProduct> {
                   decoration: const InputDecoration(labelText: "Details"),
                   maxLines: 3,
                 ),
-                TextField(
-                  controller: _stockController,
-                  keyboardType: TextInputType.number,
-                  decoration:
-                      const InputDecoration(labelText: "Stock Quantity"),
-                ),
                 const SizedBox(height: 10),
                 ElevatedButton(
                   onPressed: _pickImage,
                   child: const Text("Add Image"),
                 ),
                 const SizedBox(height: 10),
-                // Added small image preview box
                 if (_image != null || _webImage != null)
                   Container(
                     width: 100,
@@ -218,16 +208,8 @@ class _ManageProductState extends State<ManageProduct> {
                       border: Border.all(color: Colors.grey),
                     ),
                     child: kIsWeb && _webImage != null
-                        ? Image.memory(
-                            _webImage!,
-                            fit: BoxFit.cover,
-                          )
-                        : (_image != null
-                            ? Image.file(
-                                _image!,
-                                fit: BoxFit.cover,
-                              )
-                            : Container()),
+                        ? Image.memory(_webImage!, fit: BoxFit.cover)
+                        : (_image != null ? Image.file(_image!, fit: BoxFit.cover) : Container()),
                   ),
                 const SizedBox(height: 10),
                 ElevatedButton(
