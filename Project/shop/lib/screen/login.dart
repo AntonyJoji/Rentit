@@ -16,36 +16,31 @@ class _ShopLoginState extends State<ShopLogin> {
   final SupabaseClient supabase = Supabase.instance.client;
 
   Future<void> _login() async {
+    try {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill in all fields.')),
-      );
-      return;
-    }
+    final auth = await supabase.auth.signInWithPassword(password: password, email: email);
 
-    try {
+    
       final response = await supabase
           .from('tbl_shop')
           .select()
-          .eq('shop_email', email)
-          .maybeSingle();
-
-      if (response != null && response['shop_password'] == password) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const Shophome()),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid email or password.')),
-        );
+          .eq('shop_id', auth.user!.id)
+          .single();
+      if(response.isNotEmpty){
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Shophome(),));
       }
+      else{
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid Credentials')),
+      );
+      }
+     
     } catch (e) {
+      print("Error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('Error')),
       );
     }
   }

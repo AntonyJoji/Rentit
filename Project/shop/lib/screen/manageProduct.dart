@@ -89,11 +89,36 @@ class _ManageProductState extends State<ManageProduct> {
     }
   }
 
-  Future<void> _submitProduct() async {
-    try {
-      String? url = await photoUpload();
-    } catch (e) {}
+ Future<void> _submitProduct() async {
+  try {
+    String? url = await photoUpload(); 
+
+    final response = await Supabase.instance.client.from('tbl_item').insert({
+      'item_name': _nameController.text,
+      'category_id': int.parse(_selectedCategory!),
+      'subcategory_id': int.parse(_selectedSubcategory!),
+      'item_rentprice': double.parse(_priceController.text),
+      'item_detail': _detailsController.text,
+      'item_photo': url,
+    });
+
+    print("Product added successfully: $response");
+
+    // Clear fields after insertion
+    setState(() {
+      _nameController.clear();
+      _priceController.clear();
+      _detailsController.clear();
+      pickedImage = null;
+      _selectedCategory = null;
+      _selectedSubcategory = null;
+    });
+  } catch (e) {
+    print("Error inserting product: $e");
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
