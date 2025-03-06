@@ -36,28 +36,33 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
   }
 
   Future<void> _deleteProduct(int productId) async {
-    try {
-      await Supabase.instance.client
-          .from('tbl_item')
-          .delete()
-          .eq('item_id', productId);
-      _fetchProducts(); // Refresh after delete
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Product deleted successfully!"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } catch (e) {
-      print("Error deleting product: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error deleting product: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+  try {
+    final supabase = Supabase.instance.client;
+
+    // Delete related stock entries first
+    await supabase.from('tbl_stock').delete().eq('item_id', productId);
+
+    // Now delete the product
+    await supabase.from('tbl_item').delete().eq('item_id', productId);
+
+    _fetchProducts(); // Refresh after delete
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Product deleted successfully!"),
+        backgroundColor: Colors.red,
+      ),
+    );
+  } catch (e) {
+    print("Error deleting product: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error deleting product: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
