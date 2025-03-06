@@ -23,7 +23,7 @@ class _ShopHomeState extends State<Shophome> {
     Dashboard(),
     Managebooking(),
     addProduct(),
-    manageProduct(),
+    ManageProductsPage(),
   
     const Center(child: Text('Settings Content')),
   ];
