@@ -11,80 +11,58 @@ class ProductDetails extends StatefulWidget {
 
 class _ProductDetailsState extends State<ProductDetails> {
   final TextEditingController stockController = TextEditingController();
-  int stockQuantity = 0;
+  List<Map<String, dynamic>> stockHistory = [];
+  int totalStock = 0; // Variable to store total stock
 
   @override
   void initState() {
     super.initState();
-    fetchStock();
+    fetchStockHistory();
   }
 
-  Future<void> fetchStock() async {
+  Future<void> fetchStockHistory() async {
     final supabase = Supabase.instance.client;
+
+    // Fetch stock history
     final response = await supabase
         .from('tbl_stock')
-        .select('stock_quantity')
+        .select('stock_quantity, stock_date')
         .eq('item_id', widget.product['item_id'])
-        .maybeSingle();
+        .order('stock_date', ascending: false);
 
-    if (response != null) {
-      setState(() {
-        stockQuantity = response['stock_quantity'] ?? 0;
+    // Convert response and calculate total stock
+    List<Map<String, dynamic>> fetchedStock = List<Map<String, dynamic>>.from(response);
+    int calculatedTotalStock = fetchedStock.fold(0, (sum, stock) => sum + (stock['stock_quantity'] as int));
+
+    setState(() {
+      stockHistory = fetchedStock;
+      totalStock = calculatedTotalStock;
+    });
+  }
+
+  Future<void> addStock() async {
+    try {
+      int itemId = widget.product['item_id'];
+      int newStock = int.tryParse(stockController.text) ?? 0;
+      String stockDate = DateTime.now().toIso8601String();
+
+      final supabase = Supabase.instance.client;
+
+      // Insert new stock entry separately
+      await supabase.from('tbl_stock').insert({
+        'item_id': itemId,
+        'stock_quantity': newStock,
+        'stock_date': stockDate,
       });
+
+      // Refresh stock history & update total stock
+      fetchStockHistory();
+    } catch (e) {
+      print("Error adding stock: $e");
     }
   }
 
-
- Future<void> addStock() async {
-  try {
-    int itemId = widget.product['item_id'];
-    int newStock = int.tryParse(stockController.text) ?? 0;
-
-    final supabase = Supabase.instance.client;
-    
-    // Check if stock entry exists
-    final existingStock = await supabase
-        .from('tbl_stock')
-        .select('stock_quantity')
-        .eq('item_id', itemId)
-        .maybeSingle();
-
-    if (existingStock != null) {
-      // If stock exists, update it
-      await supabase
-          .from('tbl_stock')
-          .update({
-            'stock_quantity': existingStock['stock_quantity'] + newStock,
-            'stock_date': DateTime.now().toIso8601String(),
-          })
-          .eq('item_id', itemId);
-      
-      setState(() {
-        stockQuantity += newStock;
-      });
-      print("Stock updated for item ID: $itemId");
-    } else {
-      // If stock does not exist, insert a new record
-      await supabase
-          .from('tbl_stock')
-          .insert({
-            'item_id': itemId,
-            'stock_quantity': newStock,
-            'stock_date': DateTime.now().toIso8601String(),
-          });
-
-      setState(() {
-        stockQuantity = newStock;
-      });
-      print("New stock entry created for item ID: $itemId");
-    }
-  } catch (e) {
-    print("Error adding stock: $e");
-  }
-}
-
-
-  void showStock() {
+  void showStockDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -162,16 +140,42 @@ class _ProductDetailsState extends State<ProductDetails> {
               widget.product['item_details'] ?? 'No details available.',
               style: const TextStyle(fontSize: 16),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
+
+            // Display total stock
             Text(
-              "Stock: $stockQuantity",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              "Total Stock: $totalStock",
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
             ),
+            const SizedBox(height: 16),
+
+            const Text(
+              "Stock History:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            stockHistory.isEmpty
+                ? const Text("No stock history available.")
+                : Expanded(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: stockHistory.length,
+                      itemBuilder: (context, index) {
+                        final stock = stockHistory[index];
+                        return ListTile(
+                          leading: const Icon(Icons.history, color: Colors.blue),
+                          title: Text("Added: ${stock['stock_quantity']}"),
+                          subtitle: Text(
+                            "Date: ${DateTime.parse(stock['stock_date']).toLocal()}",
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: showStock,
+        onPressed: showStockDialog,
         tooltip: 'Add Stock',
         child: const Icon(Icons.add),
       ),
