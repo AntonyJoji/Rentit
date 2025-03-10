@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:user/screen/userhomepage.dart';
 
 class CheckoutPage extends StatefulWidget {
-  const CheckoutPage({Key? key}) : super(key: key);
+  final int bid;
+  const CheckoutPage({super.key, required this.bid});
 
   @override
   _CheckoutPageState createState() => _CheckoutPageState();
@@ -62,7 +64,9 @@ Future<void> _fetchTotalAmount() async {
     final cartResponse = await supabase
         .from('tbl_cart')
         .select('cart_qty, item_id')
-        .eq('user_id', userId);
+        .eq('booking_id', widget.bid); // Changed from 'user_id'
+
+    print("Cart Response: $cartResponse"); // Debugging purpose
 
     if (cartResponse.isEmpty) {
       setState(() {
@@ -100,7 +104,7 @@ Future<void> _fetchTotalAmount() async {
     if (!mounted) return;
     setState(() {
       totalAmount = total;
-      _advancePaymentAmount = advancePaymentTotal; // Updated logic here
+      _advancePaymentAmount = advancePaymentTotal;
     });
 
     print("Total Amount: $totalAmount");
@@ -116,38 +120,6 @@ Future<void> _fetchTotalAmount() async {
   }
 }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final now = DateTime.now();
-
-    final DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: isStartDate
-          ? now
-          : (startDate != null
-              ? startDate!.add(const Duration(days: 1))
-              : now.add(const Duration(days: 1))),
-      firstDate: isStartDate
-          ? now
-          : (startDate != null
-              ? startDate!.add(const Duration(days: 1))
-              : now.add(const Duration(days: 1))),
-      lastDate: now.add(const Duration(days: 30)),
-    );
-
-    if (pickedDate != null) {
-      if (!mounted) return;
-      setState(() {
-        if (isStartDate) {
-          startDate = pickedDate;
-          pickupDate = null;
-        } else {
-          pickupDate = pickedDate;
-        }
-      });
-
-      await _fetchTotalAmount();
-    }
-  }
 
   Future<void> _confirmPayment() async {
   try {
@@ -171,54 +143,95 @@ Future<void> _fetchTotalAmount() async {
 }
 
   Future<bool> _simulatePayment() async {
-    // Simulate a payment process with a 50% chance of success
-    await Future.delayed(Duration(seconds: 2));
-    return DateTime.now().second % 2 == 0;
-  }
+  await Future.delayed(Duration(seconds: 2));
+  return DateTime.now().millisecond % 10 < 8; // 80% success chance
+}
 
-  Future<void> _placeOrder() async {
-    try {
-      if (!mounted) return;
+Future<void> _placeOrder() async {
+  try {
+    if (!mounted) return;
 
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) throw Exception("User not logged in");
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception("User not logged in");
 
-      if (startDate == null || pickupDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please select both start and pickup dates")),
-        );
-        return;
-      }
-
-      await supabase.from('tbl_cart').delete().eq('user_id', userId);
-
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text("Order Confirmed"),
-          content: Text(
-            "Your order has been placed successfully!\n\n"
-            "Start Date: ${DateFormat('yyyy-MM-dd').format(startDate!)}\n"
-            "Pickup Date: ${DateFormat('yyyy-MM-dd').format(pickupDate!)}\n"
-            "Advance Payment: \$${_advancePaymentAmount.toStringAsFixed(2)}"
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text("OK"),
-            ),
-          ],
-        ),
+    if (startDate == null || pickupDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Please select both start and pickup dates")),
       );
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to place order")),
-        );
-      }
+      return;
+    }
+
+    // Update `cart_status` in `tbl_cart`
+    await supabase
+        .from('tbl_cart')
+        .update({'cart_status': 1})
+        .eq('booking_id', widget.bid);
+
+    // Update `booking_status` in `tbl_booking`
+    await supabase
+        .from('tbl_booking')
+        .update({'booking_status': 1})
+        .eq('booking_id', widget.bid);
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Order Confirmed"),
+        content: Text(
+          "Your order has been placed successfully!\n\n"
+          "Start Date: ${DateFormat('yyyy-MM-dd').format(startDate!)}\n"
+          "Pickup Date: ${DateFormat('yyyy-MM-dd').format(pickupDate!)}\n"
+          "Advance Payment: \$${_advancePaymentAmount.toStringAsFixed(2)}"
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => UserHomePage()),
+              );
+            },
+            child: Text("OK"),
+          ),
+        ],
+      ),
+    );
+  } catch (error) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to place order")),
+      );
     }
   }
+}
+
+
+ Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+  final DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2101),
+  );
+  
+  if (picked != null) {
+    setState(() {
+      if (isStartDate) {
+        startDate = picked;
+      } else {
+        pickupDate = picked;
+      }
+    });
+
+    if (startDate != null && pickupDate != null) {
+      await _fetchTotalAmount();  // Now calculates total only when both dates are picked
+    }
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {

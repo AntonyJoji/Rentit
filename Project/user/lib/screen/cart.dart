@@ -21,13 +21,20 @@ class _CartPageState extends State<CartPage> {
     fetchCartItems();
   }
 
+  int? bid;
+
   // Fetch Cart Items from Supabase
   Future<void> fetchCartItems() async {
     try {
+      final booking = await supabase.from('tbl_booking').select("booking_id").eq('user_id', supabase.auth.currentUser!.id).eq('booking_status', 0).maybeSingle();
+      int bookingId = booking!['booking_id'];
+      setState(() {
+        bid=bookingId;
+      });
       final cartResponse = await supabase
           .from('tbl_cart')
           .select('*')
-          .eq('user_id', supabase.auth.currentUser!.id)
+          .eq('booking_id', bookingId)
           .eq('cart_status', 0);
 
       List<Map<String, dynamic>> items = [];
@@ -212,7 +219,7 @@ class _CartPageState extends State<CartPage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (context) => CheckoutPage()),
+                                      builder: (context) => CheckoutPage(bid: bid!,)),
                                 );
                               },
                               child: Text("Proceed to Checkout",
