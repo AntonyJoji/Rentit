@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:user/screen/cart.dart';
+//import 'package:user/screen/cart.dart';
 
 class ProductPage extends StatefulWidget {
   final int itemId; // Pass only item ID
