@@ -81,48 +81,48 @@ class _ManageBookingState extends State<ManageBooking> {
     }
 
     return SafeArea(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Padding for any header or introductory content
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
+      child: SingleChildScrollView( // Allow everything to scroll
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Text(
                 'Manage Bookings',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
-            ),
-            // ListView of bookings
-            SizedBox(
-              height: MediaQuery.of(context).size.height, // This makes the ListView scrollable
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: bookings.length,
-                itemBuilder: (context, index) {
-                  final booking = bookings[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    child: ListTile(
-                      leading: const Icon(Icons.shopping_cart, color: Colors.blueAccent),
-                      title: Text('Booking ID: ${booking['booking_id']}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('User ID: ${booking['user_id']}'),
-                          Text('Item ID: ${booking['item_id']}'),
-                          Text('Booking Date: ${booking['booking_date']}'),
-                          Text('Return Date: ${booking['return_date']}'),
-                          Text('Booking Status: ${booking['booking_status']}'),
-                          Text('Payment Status: ${booking['payment_status']}'),
-                          Text('Shop ID: ${booking['shop_id']}'),
-                        ],
+              const SizedBox(height: 16.0),
+              // Use ListView.builder inside a Container to manage height
+              Container(
+                height: MediaQuery.of(context).size.height - 100, // Adjust to fit within the screen
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16.0),
+                  itemCount: bookings.length,
+                  itemBuilder: (context, index) {
+                    final booking = bookings[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 16.0),
+                      child: ListTile(
+                        leading: const Icon(Icons.shopping_cart, color: Colors.blueAccent),
+                        title: Text('Booking ID: ${booking['booking_id']}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('User ID: ${booking['user_id']}'),
+                            Text('Item ID: ${booking['item_id']}'),
+                            Text('Booking Date: ${booking['booking_date']}'),
+                            Text('Return Date: ${booking['return_date']}'),
+                            Text('Booking Status: ${booking['booking_status']}'),
+                            Text('Payment Status: ${booking['payment_status']}'),
+                            Text('Shop ID: ${booking['shop_id']}'),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
