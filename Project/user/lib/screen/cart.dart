@@ -26,11 +26,26 @@ class _CartPageState extends State<CartPage> {
   // Fetch Cart Items from Supabase
   Future<void> fetchCartItems() async {
     try {
-      final booking = await supabase.from('tbl_booking').select("booking_id").eq('user_id', supabase.auth.currentUser!.id).eq('booking_status', 0).maybeSingle();
-      int bookingId = booking!['booking_id'];
+      final bookingResponse = await supabase.from('tbl_booking').select("booking_id")
+        .eq('user_id', supabase.auth.currentUser!.id)
+        .eq('booking_status', 0)
+        .order('booking_date', ascending: false)
+        .limit(1);
+
+      if (bookingResponse.isEmpty) {
+        print("No active booking found.");
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      int bookingId = bookingResponse[0]['booking_id'];
+
       setState(() {
-        bid=bookingId;
+        bid = bookingId;
       });
+
       final cartResponse = await supabase
           .from('tbl_cart')
           .select('*')
@@ -61,26 +76,10 @@ class _CartPageState extends State<CartPage> {
         cartItems = items;
         isLoading = false;
       });
+
     } catch (e) {
       print("Error fetching cart data: $e");
       setState(() => isLoading = false);
-    }
-  }
-
-  // Update Cart Quantity
-  Future<void> updateCartQuantity(int cartId, int newQty) async {
-    try {
-      await supabase
-          .from('tbl_cart')
-          .update({'cart_qty': newQty})
-          .eq('cart_id', cartId);
-
-      fetchCartItems(); // Refresh the cart after updating
-    } catch (e) {
-      print("Error updating cart quantity: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update quantity. Please try again.')),
-      );
     }
   }
 
@@ -97,6 +96,26 @@ class _CartPageState extends State<CartPage> {
       print("Error deleting item: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete item. Please try again.')),
+      );
+    }
+  }
+
+  // **Updated Cart Quantity Method**
+  Future<void> updateCartQuantity(int cartId, int newQuantity) async {
+    try {
+      await supabase
+          .from('tbl_cart')
+          .update({'cart_qty': newQuantity})
+          .eq('cart_id', cartId);
+
+      fetchCartItems(); // Refresh the cart after updating quantity
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cart quantity updated.')),
+      );
+    } catch (e) {
+      print("Error updating cart quantity: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update quantity. Please try again.')),
       );
     }
   }

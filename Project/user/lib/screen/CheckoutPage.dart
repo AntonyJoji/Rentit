@@ -64,11 +64,9 @@ Future<void> _fetchTotalAmount() async {
     final cartResponse = await supabase
         .from('tbl_cart')
         .select('cart_qty, item_id')
-        .eq('booking_id', widget.bid); // Changed from 'user_id'
+        .eq('booking_id', widget.bid);
 
-    print("Cart Response: $cartResponse"); // Debugging purpose
-
-    if (cartResponse.isEmpty) {
+    if (cartResponse .isEmpty) {
       setState(() {
         totalAmount = 0.0;
         _advancePaymentAmount = 0.0;
@@ -98,7 +96,7 @@ Future<void> _fetchTotalAmount() async {
 
       final itemTotal = (cartItem['cart_qty'] ?? 0) * dailyRentPrice * totalDays;
       total += itemTotal;
-      advancePaymentTotal += itemTotal * 0.3;  // 30% advance payment
+      advancePaymentTotal += itemTotal * 0.3;
     }
 
     if (!mounted) return;
@@ -119,6 +117,7 @@ Future<void> _fetchTotalAmount() async {
     }
   }
 }
+
 
 
   Future<void> _confirmPayment() async {
@@ -167,12 +166,13 @@ Future<void> _placeOrder() async {
         .update({'cart_status': 1})
         .eq('booking_id', widget.bid);
 
-    // Update `booking_status` and `return_date` in `tbl_booking`
+    // Update `booking_status`, `return_date`, and `cart_id` in `tbl_booking`
     await supabase
         .from('tbl_booking')
         .update({
           'booking_status': 1,
-          'return_date': DateFormat('yyyy-MM-dd').format(pickupDate!)
+          'return_date': DateFormat('yyyy-MM-dd').format(pickupDate!),
+          'cart_id': widget.bid, // Update the cart_id here
         })
         .eq('booking_id', widget.bid);
 
@@ -211,6 +211,7 @@ Future<void> _placeOrder() async {
     }
   }
 }
+
 
 
 

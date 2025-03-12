@@ -9,12 +9,20 @@ class RentHistoryPage extends StatefulWidget {
 class _RentHistoryPageState extends State<RentHistoryPage> {
   final supabase = Supabase.instance.client;
 
+  // Fetch rent history data from the database
   Future<List<Map<String, dynamic>>> fetchRentHistory() async {
     try {
+      // Fetch cart data along with the relationship to tbl_booking
       final cartData = await supabase
           .from('tbl_cart')
-          .select('*, tbl_booking:booking_id(booking_date, return_date, booking_status, early_return_date)')
+          .select(
+            'cart_id, cart_qty, item_id, tbl_booking!tbl_booking_cart_id_fkey(booking_date, return_date, booking_status, early_return_date, booking_id, user_id)'
+          )
           .eq('tbl_booking.user_id', supabase.auth.currentUser!.id);
+
+      if (cartData.isEmpty) {
+        return [];
+      }
 
       final itemIds = cartData.map((item) => item['item_id']).toList();
       final itemData = await supabase
@@ -22,53 +30,28 @@ class _RentHistoryPageState extends State<RentHistoryPage> {
           .select('item_id, item_name, item_rentprice')
           .inFilter('item_id', itemIds);
 
+      // Map cart data with item and booking info
       return cartData.map((cartItem) {
         final matchingItem = itemData.firstWhere(
           (item) => item['item_id'] == cartItem['item_id'],
           orElse: () => {'item_name': 'Unknown', 'item_rentprice': 0},
         );
 
+        final bookingData = (cartItem['tbl_booking'] as List?)?.firstOrNull;
+
         return {
           'itemName': matchingItem['item_name'],
-          'rentalDate': cartItem['tbl_booking']['booking_date'],
-          'returnDate': cartItem['tbl_booking']['return_date'],
-          'earlyReturnDate': cartItem['tbl_booking']['early_return_date'] ?? 'N/A',
-          'status': cartItem['tbl_booking']['booking_status'] == 1 ? 'Completed' : 'Pending',
+          'rentalDate': bookingData?['booking_date'] ?? 'N/A',
+          'returnDate': bookingData?['return_date'] ?? 'N/A',
+          'earlyReturnDate': bookingData?['early_return_date'] ?? 'N/A',
+          'status': bookingData?['booking_status'] == 1 ? 'Completed' : 'Pending',
           'totalCost': '\$${(cartItem['cart_qty'] ?? 0) * (matchingItem['item_rentprice'] ?? 0)}',
-          'bookingId': cartItem['tbl_booking']['booking_id']
+          'bookingId': bookingData?['booking_id'] ?? 0
         };
       }).toList();
     } catch (e) {
       print('Error fetching rent history: $e');
       return [];
-    }
-  }
-
-  Future<void> requestEarlyReturn(int bookingId) async {
-    final DateTime? selectedDate = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 30)),
-    );
-
-    if (selectedDate != null) {
-      try {
-        await supabase
-            .from('tbl_booking')
-            .update({'early_return_date': selectedDate.toIso8601String()})
-            .eq('booking_id', bookingId);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Early return request submitted successfully!')),
-        );
-        setState(() {}); // Refresh data after updating
-      } catch (e) {
-        print('Error submitting early return request: $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit request. Please try again.')),
-        );
-      }
     }
   }
 
@@ -114,15 +97,9 @@ class _RentHistoryPageState extends State<RentHistoryPage> {
                           style: TextStyle(
                               color: item['status'] == 'Completed'
                                   ? Colors.green
-                                  : Colors.orange))
+                                  : Colors.orange)),
                     ],
                   ),
-                  trailing: item['status'] == 'Pending'
-                      ? ElevatedButton(
-                          onPressed: () => requestEarlyReturn(item['bookingId']),
-                          child: Text('Request Early Return'),
-                        )
-                      : null,
                 ),
               );
             },

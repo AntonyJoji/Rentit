@@ -21,7 +21,7 @@ class _ShopHomeState extends State<Shophome> {
 
   final List<Widget> _pages = [
     Dashboard(),
-    Managebooking(),
+    ManageBooking(),
     addProduct(),
     ManageProductsPage(),
   
