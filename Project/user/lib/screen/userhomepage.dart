@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screen/cart.dart';
+import 'package:user/screen/history.dart';
 import 'package:user/screen/login.dart';
 import 'package:user/screen/productpage.dart';
 import 'package:user/screen/settingsPage.dart';
@@ -81,7 +82,9 @@ class _UserHomePageState extends State<UserHomePage> {
             ListTile(
               leading: Icon(Icons.list),
               title: Text('My Rentals'),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => RentHistoryPage()));
+              },
             ),
             ListTile(
               leading: Icon(Icons.settings),

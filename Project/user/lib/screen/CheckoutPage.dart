@@ -167,10 +167,13 @@ Future<void> _placeOrder() async {
         .update({'cart_status': 1})
         .eq('booking_id', widget.bid);
 
-    // Update `booking_status` in `tbl_booking`
+    // Update `booking_status` and `return_date` in `tbl_booking`
     await supabase
         .from('tbl_booking')
-        .update({'booking_status': 1})
+        .update({
+          'booking_status': 1,
+          'return_date': DateFormat('yyyy-MM-dd').format(pickupDate!)
+        })
         .eq('booking_id', widget.bid);
 
     if (!mounted) return;
@@ -183,6 +186,7 @@ Future<void> _placeOrder() async {
           "Your order has been placed successfully!\n\n"
           "Start Date: ${DateFormat('yyyy-MM-dd').format(startDate!)}\n"
           "Pickup Date: ${DateFormat('yyyy-MM-dd').format(pickupDate!)}\n"
+          "Return Date: ${DateFormat('yyyy-MM-dd').format(pickupDate!)}\n"
           "Advance Payment: \$${_advancePaymentAmount.toStringAsFixed(2)}"
         ),
         actions: [
@@ -209,14 +213,15 @@ Future<void> _placeOrder() async {
 }
 
 
- Future<void> _selectDate(BuildContext context, bool isStartDate) async {
+
+Future<void> _selectDate(BuildContext context, bool isStartDate) async {
   final DateTime? picked = await showDatePicker(
     context: context,
     initialDate: DateTime.now(),
     firstDate: DateTime(2000),
     lastDate: DateTime(2101),
   );
-  
+
   if (picked != null) {
     setState(() {
       if (isStartDate) {
@@ -226,12 +231,22 @@ Future<void> _placeOrder() async {
       }
     });
 
+    if (!isStartDate && pickupDate != null) {
+      await _updateReturnDate(pickupDate!);
+    }
+
     if (startDate != null && pickupDate != null) {
       await _fetchTotalAmount();  // Now calculates total only when both dates are picked
     }
   }
 }
 
+
+  Future<void> _updateReturnDate(DateTime returnDate) async {
+    // Implement the logic to update the return date if needed
+    // For now, this is a placeholder function
+    print("Return date updated to: $returnDate");
+  }
 
   @override
   Widget build(BuildContext context) {
