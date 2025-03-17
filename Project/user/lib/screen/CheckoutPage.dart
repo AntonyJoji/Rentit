@@ -160,21 +160,17 @@ Future<void> _placeOrder() async {
       return;
     }
 
-    // Update `cart_status` in `tbl_cart`
-    await supabase
-        .from('tbl_cart')
-        .update({'cart_status': 1})
-        .eq('booking_id', widget.bid);
+   await supabase
+    .from('tbl_booking')
+    .update({
+      'booking_status': 1,
+      'return_date': DateFormat('yyyy-MM-dd').format(pickupDate!),
+      'start_date': DateFormat('yyyy-MM-dd').format(startDate!),
+      'booking_totalprice': totalAmount.toInt(), 
+    })
+    .eq('booking_id', widget.bid);
 
-    // Update `booking_status`, `return_date`, and `cart_id` in `tbl_booking`
-    await supabase
-        .from('tbl_booking')
-        .update({
-          'booking_status': 1,
-          'return_date': DateFormat('yyyy-MM-dd').format(pickupDate!),
-          'cart_id': widget.bid, // Update the cart_id here
-        })
-        .eq('booking_id', widget.bid);
+
 
     if (!mounted) return;
 
@@ -204,12 +200,14 @@ Future<void> _placeOrder() async {
       ),
     );
   } catch (error) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to place order")),
-      );
-    }
+  if (mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to place order: $error")),
+    );
+    print("Order Placement Error: $error");
   }
+}
+
 }
 
 
