@@ -170,6 +170,13 @@ Future<void> _placeOrder() async {
     })
     .eq('booking_id', widget.bid);
 
+    await supabase
+    .from('tbl_cart')
+    .update({
+      'cart_status': 1,
+    })
+    .eq('booking_id', widget.bid);
+
 
 
     if (!mounted) return;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shop/screen/login.dart';
 
 class SideBar extends StatefulWidget {
   final Function(int) onItemSelected;
@@ -17,10 +19,18 @@ class _SideBarState extends State<SideBar> {
   ];
   final List<IconData> icons = [
     Icons.map,
-    Icons.fact_check, 
-    Icons.storefront, 
+    Icons.fact_check,
+    Icons.storefront,
     Icons.production_quantity_limits
   ];
+
+  Future<void> logout(BuildContext context) async {
+    await Supabase.instance.client.auth.signOut();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (context) => const ShopLogin()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +81,7 @@ class _SideBarState extends State<SideBar> {
               "Logout",
               style: TextStyle(color: Colors.white),
             ),
-            onTap: () {},
+            onTap: () => logout(context),
           ),
         ],
       ),
