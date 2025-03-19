@@ -19,7 +19,7 @@ class Appbar1 extends StatelessWidget {
               width: 10,
             ),
             Text(
-              "Admin",
+              "Shop",
               style: TextStyle(color: Colors.black),
             ),
             SizedBox(

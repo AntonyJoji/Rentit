@@ -10,26 +10,24 @@ class SideBar extends StatefulWidget {
 
 class _SideBarState extends State<SideBar> {
   final List<String> pages = [
+    "Admin Dashboard",
     "manageplace",
     "Complaint",
     "manageshop",
     "managedistrict",
-    "manageuser",
-    "viewbooking",
     "category",
     "subcategory",
-    "manageDeliveryBoy",
+    
   ];
   final List<IconData> icons = [
+    Icons.home,
     Icons.map,
     Icons.fact_check, 
     Icons.storefront, 
     Icons.location_city,
-    Icons.group,
-    Icons.library_books,
     Icons.category,
     Icons.category,
-    Icons.local_shipping,
+    
   ];
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shop/component/appbar.dart';
 import 'package:shop/component/sidebar.dart';
+import 'package:shop/screen/complaint.dart';
 import 'package:shop/screen/dashboard.dart';
 import 'package:shop/screen/manageBooking.dart';
 import 'package:shop/screen/addProduct.dart';
@@ -24,6 +25,7 @@ class _ShopHomeState extends State<Shophome> {
     ManageBookingsPage(),
     addProduct(),
     ManageProductsPage(),
+    ComplaintPage(),
   
     const Center(child: Text('Settings Content')),
   ];

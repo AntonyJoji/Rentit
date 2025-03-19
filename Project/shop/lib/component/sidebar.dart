@@ -16,12 +16,14 @@ class _SideBarState extends State<SideBar> {
     "Manage Booking",
     "ADD Product",
     "Manage Product",
+    "Complaints",
   ];
   final List<IconData> icons = [
     Icons.map,
     Icons.fact_check,
     Icons.storefront,
-    Icons.production_quantity_limits
+    Icons.production_quantity_limits,
+    Icons.report
   ];
 
   Future<void> logout(BuildContext context) async {

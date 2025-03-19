@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:rentit_admin1/component/appbar.dart';
 import 'package:rentit_admin1/component/sidebar.dart';
+import 'package:rentit_admin1/screen/dashboard.dart';
 import 'package:rentit_admin1/screen/manageDeliveryBoy.dart';
 import 'package:rentit_admin1/screen/managecategory.dart';
 import 'package:rentit_admin1/screen/managedistrict.dart';
@@ -8,8 +9,7 @@ import 'package:rentit_admin1/screen/manageshop.dart';
 import 'package:rentit_admin1/screen/complaint.dart';
 import 'package:rentit_admin1/screen/manageplace.dart';
 import 'package:rentit_admin1/screen/managesubcategory.dart';
-import 'package:rentit_admin1/screen/manageuser.dart';
-import 'package:rentit_admin1/screen/viewBooking.dart';
+
 
 
 class AdminHome extends StatefulWidget {
@@ -23,12 +23,11 @@ class _AdminHomeState extends State<AdminHome> {
   int _selectedIndex = 0;
 
   final List<Widget> _pages = [
+    AdminDashboard(),
    Manageplace(),
-   Complaint(),
+   ComplaintPage(),
    Manageshop(),
    Managedistrict(),
-   manageuser(),
-   Viewbooking(),
    category(),
    subCategory(),
    deliveryboy(),
