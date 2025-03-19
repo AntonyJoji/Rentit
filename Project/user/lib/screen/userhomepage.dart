@@ -83,7 +83,7 @@ class _UserHomePageState extends State<UserHomePage> {
               leading: Icon(Icons.list),
               title: Text('My Bookings'),
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => Mybookings()));
+                Navigator.push(context, MaterialPageRoute(builder: (context) =>Mybookings()));
               },
             ),
             ListTile(

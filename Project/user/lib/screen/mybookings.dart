@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Import your Supabase dependency
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'complaintpage.dart'; // Imported ComplaintPage
 
 class Mybookings extends StatefulWidget {
   const Mybookings({super.key});
@@ -25,7 +26,7 @@ class _MybookingsState extends State<Mybookings> {
 
       final bookingResponse = await Supabase.instance.client
           .from('tbl_booking')
-          .select('*, tbl_cart(*)')
+          .select('*, tbl_cart(*, tbl_item(item_name,item_id))')
           .eq('user_id', user.id)
           .order('booking_date', ascending: false);
 
@@ -37,6 +38,15 @@ class _MybookingsState extends State<Mybookings> {
       print("Error fetching bookings: $e");
       setState(() => isLoading = false);
     }
+  }
+
+  void _submitComplaint(int bookingId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ComplaintPage(bookingId: bookingId),
+      ),
+    );
   }
 
   @override
@@ -61,6 +71,7 @@ class _MybookingsState extends State<Mybookings> {
                   itemCount: bookings.length,
                   itemBuilder: (context, index) {
                     var booking = bookings[index];
+                    print(booking['tbl_cart']);
                     return Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -79,14 +90,26 @@ class _MybookingsState extends State<Mybookings> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              "Booking ID: ${booking['booking_id']}",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                            ListView.separated(
+                              separatorBuilder: (context, index) => const Divider(),
+                              itemCount: booking['tbl_cart'].length,
+                              shrinkWrap: true,
+                              physics: NeverScrollableScrollPhysics(),
+                              itemBuilder: (context, index) {
+                                print(booking['tbl_cart'][index]['tbl_item']);
+                              return ListTile(
+                                title: Text(booking['tbl_cart'][index]['tbl_item']['item_name']),
+                                subtitle: Text("Quantity: ${booking['tbl_cart'][index]['cart_qty']}"),
+                                trailing: ElevatedButton(
+                              onPressed: () => _submitComplaint(booking['tbl_cart'][index]['tbl_item']['item_id']),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.redAccent,
                               ),
+                              child: const Text("Complaint"),
                             ),
-                            const SizedBox(height: 4),
+                              );
+                            },),
+                             const Divider(),
                             Text(
                               "Total Price: ₹${booking['booking_totalprice']}",
                               style: const TextStyle(
