@@ -12,10 +12,11 @@ class OrderDetailsPage extends StatefulWidget {
 
 class _OrderDetailsPageState extends State<OrderDetailsPage> {
   List<Map<String, dynamic>> orderItems = [];
-  List<Map<String, dynamic>> deliveryBoys = [];
   Map<String, dynamic>? userDetails;
-  int bookingStatus = 0;
+  Map<String, dynamic>? bookingDetails;
   bool isLoading = true;
+  String? selectedDeliveryBoy;
+  List<Map<String, dynamic>> deliveryBoys = [];
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       await Future.wait([
         fetchItems(),
         fetchUserDetails(),
-        fetchBookingStatus(),
+        fetchBookingDetails(),
       ]);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,28 +53,15 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     });
   }
 
-  Future<void> fetchBookingStatus() async {
+  Future<void> fetchBookingDetails() async {
     final response = await Supabase.instance.client
         .from('tbl_booking')
-        .select('booking_status')
+        .select('*')
         .eq('booking_id', widget.bid)
         .single();
 
     setState(() {
-      bookingStatus = response['booking_status'];
-    });
-  }
-
-  Future<void> fetchDeliveryBoys() async {
-    final response =
-        await Supabase.instance.client.from('tbl_deliveryboy').select('*');
-    setState(() {
-      deliveryBoys = response
-          .map((boy) => {
-                'id': boy['boy_id'],
-                'name': boy['boy_name'],
-              })
-          .toList();
+      bookingDetails = response;
     });
   }
 
@@ -90,38 +78,40 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                 'product': item['tbl_item']['item_name'],
                 'image': item['tbl_item']['item_photo'],
                 'qty': item['cart_qty'],
-                'price': item['tbl_item']['item_rentprice'],
-                'total': item['tbl_item']['item_rentprice'] * item['cart_qty'],
                 'status': item['cart_status'],
-                'booking': item['booking_id'],
-                'boy_id': item['boy_id'] ?? '',
               })
           .toList();
     });
   }
 
-  Future<void> assignDeliveryBoy(int cartId, String boyId) async {
+  Future<void> fetchDeliveryBoys() async {
+    final response = await Supabase.instance.client.from('tbl_deliveryboy').select('*');
+    setState(() {
+      deliveryBoys = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
+  Future<void> markAsDelivered(int cartId) async {
     try {
       await Supabase.instance.client
           .from('tbl_cart')
-          .update({'boy_id': boyId, 'cart_status': 4}).eq('cart_id', cartId);
+          .update({'cart_status': 5}).eq('cart_id', cartId);
 
       setState(() {
         orderItems = orderItems.map((item) {
           if (item['id'] == cartId) {
-            item['boy_id'] = boyId;
-            item['status'] = 4;
+            item['status'] = 5;
           }
           return item;
         }).toList();
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Delivery boy assigned successfully!")),
+        const SnackBar(content: Text("Marked as Delivered!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error assigning delivery boy: $e")),
+        SnackBar(content: Text("Error updating status: $e")),
       );
     }
   }
@@ -146,14 +136,51 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  if (userDetails != null) ...[
-                    Text("User Name: ${userDetails!['user_name']}",
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
-                    Text("Contact: ${userDetails!['user_contact']}"),
-                    Text("Address: ${userDetails!['user_address']}"),
-                    const SizedBox(height: 20),
-                  ],
+                  if (userDetails != null)
+                    Card(
+                      child: ListTile(
+                        title: Text("Name: ${userDetails!['user_name']}"),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Address: ${userDetails!['user_address']}"),
+                            Text("Contact: ${userDetails!['user_contact']}"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+                  if (bookingDetails != null)
+                    Card(
+                      child: ListTile(
+                        title: Text("Booking Date: ${bookingDetails!['booking_date']}"),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Return Date: ${bookingDetails!['return_date']}"),
+                            Text("Total Price: \$${bookingDetails!['booking_totalprice']}"),
+                            Text("Payment Status: ${bookingDetails!['payment_status']}"),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+                  DropdownButtonFormField<String>(
+                    value: selectedDeliveryBoy,
+                    hint: const Text("Select Delivery Boy"),
+                    items: deliveryBoys.map((boy) {
+                      return DropdownMenuItem(
+                        value: boy['boy_id'].toString(),
+                        child: Text(boy['boy_name']),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedDeliveryBoy = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
                   Expanded(
                     child: orderItems.isEmpty
                         ? const Center(child: Text("No items in this order"))
@@ -162,50 +189,19 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             itemBuilder: (context, index) {
                               final item = orderItems[index];
                               return Card(
-                                margin:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
+                                margin: const EdgeInsets.symmetric(vertical: 10),
                                 child: ListTile(
-                                  contentPadding: const EdgeInsets.all(12.0),
                                   leading: Image.network(
                                     item['image'],
-                                    height: 100,
-                                    width: 100,
+                                    width: 50,
+                                    height: 50,
                                     fit: BoxFit.cover,
                                   ),
-                                  title: Text(
-                                    item['product'],
-                                    style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                  subtitle: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                          "Qty: ${item['qty']} - Total: \$${item['total']}")
-                                      ,
-                                      DropdownButton<String>(
-                                        value: item['boy_id']?.toString().isNotEmpty == true
-                                            ? item['boy_id'].toString()
-                                            : null,
-                                        hint: const Text("Assign Delivery Boy"),
-                                        items: deliveryBoys.map((boy) {
-                                          return DropdownMenuItem<String>(
-                                            value: boy['id'].toString(),
-                                            child: Text(boy['name']),
-                                          );
-                                        }).toList(),
-                                        onChanged: (value) {
-                                          if (value != null) {
-                                            assignDeliveryBoy(
-                                                item['id'], value);
-                                          }
-                                        },
-                                      ),
-                                    ],
+                                  title: Text(item['product']),
+                                  subtitle: Text("Quantity: ${item['qty']}"),
+                                  trailing: ElevatedButton(
+                                    onPressed: item['status'] == 5 ? null : () => markAsDelivered(item['id']),
+                                    child: const Text("Mark as Delivered"),
                                   ),
                                 ),
                               );
