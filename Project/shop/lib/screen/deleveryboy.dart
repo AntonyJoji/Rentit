@@ -20,63 +20,43 @@ class _deliregistrationState extends State<deliregistration> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _repassEditingController = TextEditingController();
 
-  String? selectedDist;
-  String? selectedPlace;
-  List<Map<String, dynamic>> _distList = [];
-  List<Map<String, dynamic>> _placeList = [];
   PlatformFile? _deliphoto;
   PlatformFile? _deliid;
 
-  Future<void> _pickImage(bool isLogo) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null) {
-      setState(() {
-        if (isLogo) {
-          _deliphoto = result.files.first;
-        } else {
-          _deliid = result.files.first;
-        }
-      });
-    }
+ Future<void> _pickImage(bool isLogo) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
+  if (result != null) {
+    setState(() {
+      if (isLogo) {
+        _deliphoto = result.files.first;
+      } else {
+        _deliid = result.files.first;
+      }
+    });
   }
+}
 
-  Future<void> fetchDist() async {
-    try {
-      final response = await Supabase.instance.client.from('tbl_district').select();
-      setState(() {
-        _distList = List<Map<String, dynamic>>.from(response);
-      });
-    } catch (e) {
-      print("Error fetching districts: $e");
-    }
-  }
 
-  Future<void> fetchPlace(String id) async {
-    try {
-      final response = await Supabase.instance.client.from('tbl_place').select().eq('district_id', id);
-      setState(() {
-        _placeList = List<Map<String, dynamic>>.from(response);
-      });
-    } catch (e) {
-      print("Error fetching places: $e");
-    }
-  }
+  
 
   Future<String?> uploadImage(PlatformFile file, String path) async {
-    try {
-      final bytes = await File(file.path!).readAsBytes();
-      final tempFile = File('${Directory.systemTemp.path}/${file.name}');
-      await tempFile.writeAsBytes(bytes);
+  try {
+    if (file.bytes != null) {
       final response = await Supabase.instance.client
           .storage
-          .from('deliveryboy_images')
-          .upload(path, tempFile);
+          .from('shop')
+          .uploadBinary(path, file.bytes!);
+
       return response;
-    } catch (e) {
-      print("Error uploading image: $e");
-      return null;
+    } else {
+      throw Exception('File data is null.');
     }
+  } catch (e) {
+    print("Error uploading image: $e");
+    return null;
   }
+}
+
 
     final AuthService _authService = AuthService();
 
@@ -142,13 +122,7 @@ class _deliregistrationState extends State<deliregistration> {
       return;
     }
 
-    if (selectedPlace == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a valid place.')),
-      );
-      return;
-    }
-
+   
     final shopId = Supabase.instance.client.auth.currentUser?.id;
     if (shopId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -164,7 +138,6 @@ class _deliregistrationState extends State<deliregistration> {
       'boy_address': _deliAddressController.text.trim(),
       'boy_email': _deliEmailController.text.trim(),
       'boy_password': _passwordController.text.trim(),
-      'place_id': selectedPlace,
       'shop_id': shopId,
       'boy_photo': photoUrl,
       'boy_proof': proofUrl,
@@ -185,10 +158,11 @@ class _deliregistrationState extends State<deliregistration> {
   @override
   void initState() {
     super.initState();
-    fetchDist();
+
   }
 
   @override
+@override
 Widget build(BuildContext context) {
   return Center(
     child: Container(
@@ -235,7 +209,38 @@ Widget build(BuildContext context) {
               decoration: InputDecoration(labelText: 'Re-enter Password', border: OutlineInputBorder()),
               obscureText: true,
             ),
+            SizedBox(height: 12),
+
+            // Photo Upload
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _pickImage(true), // Photo
+                    child: Text(_deliphoto != null
+                        ? 'Photo Selected: ${_deliphoto!.name}'
+                        : 'Upload DeliveryBoy Photo'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+
+            // Proof Upload
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _pickImage(false), // Proof
+                    child: Text(_deliid != null
+                        ? 'Proof Selected: ${_deliid!.name}'
+                        : 'Upload DeliveryBoy Proof'),
+                  ),
+                ),
+              ],
+            ),
             SizedBox(height: 20),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
