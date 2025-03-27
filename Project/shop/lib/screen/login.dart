@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shop/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shop/screen/shopHome.dart';
 import 'package:shop/screen/shopregestration.dart';
@@ -14,12 +15,14 @@ class _ShopLoginState extends State<ShopLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final SupabaseClient supabase = Supabase.instance.client;
+   final AuthService _authService = AuthService();
 
   Future<void> _login() async {
     try {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
-
+    await _authService.storeCredentials(
+          _emailController.text, _passwordController.text);
     final auth = await supabase.auth.signInWithPassword(password: password, email: email);
 
     

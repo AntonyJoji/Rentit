@@ -17,13 +17,15 @@ class _SideBarState extends State<SideBar> {
     "ADD Product",
     "Manage Product",
     "Complaints",
+    "deleveryboy",
   ];
   final List<IconData> icons = [
     Icons.map,
     Icons.fact_check,
     Icons.storefront,
     Icons.production_quantity_limits,
-    Icons.report
+    Icons.report,
+    Icons.local_shipping
   ];
 
   Future<void> logout(BuildContext context) async {

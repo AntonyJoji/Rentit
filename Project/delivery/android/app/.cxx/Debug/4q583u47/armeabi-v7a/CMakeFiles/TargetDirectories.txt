@@ -1,0 +1,2 @@
+C:/Rentit/Project/delivery/android/app/.cxx/Debug/4q583u47/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Rentit/Project/delivery/android/app/.cxx/Debug/4q583u47/armeabi-v7a/CMakeFiles/rebuild_cache.dir
