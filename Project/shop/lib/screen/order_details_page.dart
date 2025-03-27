@@ -12,6 +12,7 @@ class OrderDetailsPage extends StatefulWidget {
 
 class _OrderDetailsPageState extends State<OrderDetailsPage> {
   List<Map<String, dynamic>> orderItems = [];
+  List<Map<String, dynamic>> deliveryBoys = [];
   Map<String, dynamic>? userDetails;
   int bookingStatus = 0;
   bool isLoading = true;
@@ -20,6 +21,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   void initState() {
     super.initState();
     fetchOrderData();
+    fetchDeliveryBoys();
   }
 
   Future<void> fetchOrderData() async {
@@ -38,34 +40,16 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     }
   }
 
-  Future<void> fetchItems() async {
-    final response = await Supabase.instance.client
-        .from('tbl_cart')
-        .select("*,tbl_item(*)")
-        .eq('booking_id', widget.bid);
-
-    setState(() {
-      orderItems = response.map((item) => {
-        'id': item['cart_id'],
-        'product': item['tbl_item']['item_name'],
-        'image': item['tbl_item']['item_photo'],
-        'qty': item['cart_qty'],
-        'price': item['tbl_item']['item_rentprice'],
-        'total': item['tbl_item']['item_rentprice'] * item['cart_qty'],
-        'status': item['cart_status'],
-        'booking': item['booking_id'],
-      }).toList();
-    });
-  }
-
   Future<void> fetchUserDetails() async {
     final response = await Supabase.instance.client
         .from('tbl_booking')
-        .select("*, tbl_user(*)")
+        .select('tbl_user:user_id(*)')
         .eq('booking_id', widget.bid)
         .single();
 
-    setState(() => userDetails = response['tbl_user']);
+    setState(() {
+      userDetails = response['tbl_user'];
+    });
   }
 
   Future<void> fetchBookingStatus() async {
@@ -75,45 +59,69 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         .eq('booking_id', widget.bid)
         .single();
 
-    setState(() => bookingStatus = response['booking_status']);
+    setState(() {
+      bookingStatus = response['booking_status'];
+    });
   }
 
-  Future<void> _updateCartStatus(int cartId, int status) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Confirm Status Change"),
-        content: const Text("Are you sure you want to update this status?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Confirm")),
-        ],
-      ),
-    );
+  Future<void> fetchDeliveryBoys() async {
+    final response =
+        await Supabase.instance.client.from('tbl_deliveryboy').select('*');
+    setState(() {
+      deliveryBoys = response
+          .map((boy) => {
+                'id': boy['boy_id'],
+                'name': boy['boy_name'],
+              })
+          .toList();
+    });
+  }
 
-    if (confirm != true) return;
+  Future<void> fetchItems() async {
+    final response = await Supabase.instance.client
+        .from('tbl_cart')
+        .select("*,tbl_item(*)")
+        .eq('booking_id', widget.bid);
 
+    setState(() {
+      orderItems = response
+          .map((item) => {
+                'id': item['cart_id'],
+                'product': item['tbl_item']['item_name'],
+                'image': item['tbl_item']['item_photo'],
+                'qty': item['cart_qty'],
+                'price': item['tbl_item']['item_rentprice'],
+                'total': item['tbl_item']['item_rentprice'] * item['cart_qty'],
+                'status': item['cart_status'],
+                'booking': item['booking_id'],
+                'boy_id': item['boy_id'] ?? '',
+              })
+          .toList();
+    });
+  }
+
+  Future<void> assignDeliveryBoy(int cartId, String boyId) async {
     try {
       await Supabase.instance.client
           .from('tbl_cart')
-          .update({'cart_status': status})
-          .eq('cart_id', cartId);
+          .update({'boy_id': boyId, 'cart_status': 4}).eq('cart_id', cartId);
 
       setState(() {
         orderItems = orderItems.map((item) {
           if (item['id'] == cartId) {
-            item['status'] = status;
+            item['boy_id'] = boyId;
+            item['status'] = 4;
           }
           return item;
         }).toList();
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Cart status updated successfully!")),
+        const SnackBar(content: Text("Delivery boy assigned successfully!")),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating cart status: $e")),
+        SnackBar(content: Text("Error assigning delivery boy: $e")),
       );
     }
   }
@@ -140,7 +148,8 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                   const SizedBox(height: 20),
                   if (userDetails != null) ...[
                     Text("User Name: ${userDetails!['user_name']}",
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                     Text("Contact: ${userDetails!['user_contact']}"),
                     Text("Address: ${userDetails!['user_address']}"),
                     const SizedBox(height: 20),
@@ -153,8 +162,10 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             itemBuilder: (context, index) {
                               final item = orderItems[index];
                               return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 10),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                margin:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(12.0),
                                   leading: Image.network(
@@ -165,20 +176,36 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                                   ),
                                   title: Text(
                                     item['product'],
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                  subtitle: Text("Qty: ${item['qty']} - Total: \$${item['total']}"),
-                                  trailing: ElevatedButton(
-                                    onPressed: item['status'] == 3
-                                        ? null
-                                        : () => _updateCartStatus(item['id'], item['status'] == 2 ? 3 : 2),
-                                    child: Text(
-                                      item['status'] == 3
-                                          ? "Completed"
-                                          : item['status'] == 2
-                                              ? "Complete"
-                                              : "Confirm",
-                                    ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                          "Qty: ${item['qty']} - Total: \$${item['total']}")
+                                      ,
+                                      DropdownButton<String>(
+                                        value: item['boy_id']?.toString().isNotEmpty == true
+                                            ? item['boy_id'].toString()
+                                            : null,
+                                        hint: const Text("Assign Delivery Boy"),
+                                        items: deliveryBoys.map((boy) {
+                                          return DropdownMenuItem<String>(
+                                            value: boy['id'].toString(),
+                                            child: Text(boy['name']),
+                                          );
+                                        }).toList(),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            assignDeliveryBoy(
+                                                item['id'], value);
+                                          }
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );

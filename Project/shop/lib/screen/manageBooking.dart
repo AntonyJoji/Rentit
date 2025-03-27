@@ -86,7 +86,7 @@ class _ManageBookingsPageState extends State<ManageBookingsPage> {
                                 : cartItem['cart_status'] == 2
                                     ? 'Pending'
                                     : cartItem['cart_status'] == 3
-                                        ? 'Completed'
+                                        ? 'item'
                                         : 'Unknown Status';
 
                             return Text("$itemName - Status: $itemStatus");

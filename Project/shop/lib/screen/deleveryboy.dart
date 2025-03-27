@@ -173,9 +173,17 @@ Widget build(BuildContext context) {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
       ),
-      child: SingleChildScrollView(
+       child: SingleChildScrollView(
         child: Column(
           children: [
+            Text(
+              'Delivery Boy Registration',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
             TextFormField(
               controller: _deliNameController,
               decoration: InputDecoration(labelText: 'DeliveryBoy Name', border: OutlineInputBorder()),
