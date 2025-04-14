@@ -1,4 +1,5 @@
 import 'package:delivery/screen/delidetails.dart';
+import 'package:delivery/screen/delihistory.dart';
 import 'package:delivery/screen/login.dart' show deliLoginPage;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -163,7 +164,12 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
             ListTile(
               leading: Icon(Icons.history),
               title: Text('Delivery History'),
-              onTap: () {},
+              onTap: () {
+                 Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => DeliveryHistoryPage()),
+    );
+              },
             ),
             ListTile(
               leading: Icon(Icons.settings),
