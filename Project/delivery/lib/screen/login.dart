@@ -1,7 +1,7 @@
 import 'package:delivery/screen/deliHomePage.dart';
 import 'package:delivery/screen/deliregistration.dart';
 import 'package:flutter/material.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class deliLoginPage extends StatefulWidget {
   const deliLoginPage({super.key});
@@ -14,6 +14,45 @@ class _deliLoginPageState extends State<deliLoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+
+  Future<void> login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    try {
+      final response = await Supabase.instance.client
+          .from('tbl_deliveryboy')
+          .select()
+          .eq('boy_email', email)
+          .eq('boy_password', password)
+          .maybeSingle();
+
+      if (response != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DeliveryBoyHomePage(boyId: response['boy_id']),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Invalid email or password')),
+        );
+      }
+    } catch (error) {
+      print("Login error: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred during login')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,14 +98,7 @@ class _deliLoginPageState extends State<deliLoginPage> {
               ),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
-                   Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const DeliveryBoyHomePage(),
-                              ),
-                            );
-                }, // Add login functionality
+                onPressed: login,
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                   shape: RoundedRectangleBorder(
@@ -77,18 +109,18 @@ class _deliLoginPageState extends State<deliLoginPage> {
               ),
               SizedBox(height: 10),
               TextButton(
-                onPressed: () {}, // Add forgot password functionality
+                onPressed: () {}, // You can add forgot password logic later
                 child: Text("Forgot Password?"),
               ),
               TextButton(
                 onPressed: () {
-                   Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const deliregistration(),
-                          ),
-                        );
-                }, // Navigate to Registration Page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const deliregistration(),
+                    ),
+                  );
+                },
                 child: Text("Don't have an account? Register"),
               ),
             ],
