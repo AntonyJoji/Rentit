@@ -15,7 +15,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   Map<String, dynamic>? userDetails;
   Map<String, dynamic>? bookingDetails;
   bool isLoading = true;
-  String? selectedDeliveryBoy;
   List<Map<String, dynamic>> deliveryBoys = [];
 
   @override
@@ -71,14 +70,17 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         .select("*,tbl_item(*)")
         .eq('booking_id', widget.bid);
 
+    print("Fetched order items: $response"); // Added to debug fetched items
+
     setState(() {
       orderItems = response
-          .map((item) => {
+          .map<Map<String, dynamic>>((item) => {
                 'id': item['cart_id'],
                 'product': item['tbl_item']['item_name'],
                 'image': item['tbl_item']['item_photo'],
                 'qty': item['cart_qty'],
                 'status': item['cart_status'],
+                'selectedBoy': item['boy_id']?.toString(),
               })
           .toList();
     });
@@ -86,36 +88,66 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
   Future<void> fetchDeliveryBoys() async {
     final response = await Supabase.instance.client.from('tbl_deliveryboy').select('*');
+    print("Fetched delivery boys: $response"); // Added to debug fetched delivery boys
     setState(() {
       deliveryBoys = List<Map<String, dynamic>>.from(response);
     });
   }
 
-  Future<void> markAsDelivered(int cartId) async {
-    try {
-      await Supabase.instance.client
+ Future<void> conformed(int cartId) async {
+  print("Conformed method called for cartId: $cartId");
+
+  try {
+    final item = orderItems.firstWhere((element) => element['id'] == cartId);
+    final selectedBoyId = item['selectedBoy'];
+
+    print("Selected boy id: $selectedBoyId"); // Added to check if a boy is selected
+
+    if (selectedBoyId != null && selectedBoyId.isNotEmpty) {
+      final parsedBoyId = selectedBoyId;
+
+      print("Assigning delivery boy id: $parsedBoyId to cart_id: $cartId");
+
+      // Perform the update query
+      final updateResponse = await Supabase.instance.client
           .from('tbl_cart')
-          .update({'cart_status': 5}).eq('cart_id', cartId);
+          .update({
+            'cart_status': 3, // Assuming status 3 is for confirmed/assigned state
+            'boy_id': parsedBoyId, // Assigning the selected delivery boy
+          })
+          .eq('cart_id', cartId)
+          .select(); // Selecting the updated row to confirm the update
 
-      setState(() {
-        orderItems = orderItems.map((item) {
-          if (item['id'] == cartId) {
-            item['status'] = 5;
-          }
-          return item;
-        }).toList();
-      });
+      print("Update response: $updateResponse"); // Debugging the update response
 
+      // Ensure the update was successful
+      if (updateResponse.isNotEmpty) {
+        // Update the UI state
+        setState(() {
+          item['status'] = 3; // Mark item as confirmed
+          item['selectedBoy'] = selectedBoyId; // Update the selected boy
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Delivery boy assigned successfully!")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to assign the delivery boy.")),
+        );
+      }
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Marked as Delivered!")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error updating status: $e")),
+        const SnackBar(content: Text("No delivery boy selected, please select one.")),
       );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
   }
-
+}
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -165,22 +197,6 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                       ),
                     ),
                   const SizedBox(height: 20),
-                  DropdownButtonFormField<String>(
-                    value: selectedDeliveryBoy,
-                    hint: const Text("Select Delivery Boy"),
-                    items: deliveryBoys.map((boy) {
-                      return DropdownMenuItem(
-                        value: boy['boy_id'].toString(),
-                        child: Text(boy['boy_name']),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDeliveryBoy = value;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 20),
                   Expanded(
                     child: orderItems.isEmpty
                         ? const Center(child: Text("No items in this order"))
@@ -198,10 +214,35 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                                     fit: BoxFit.cover,
                                   ),
                                   title: Text(item['product']),
-                                  subtitle: Text("Quantity: ${item['qty']}"),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text("Quantity: ${item['qty']}"),
+                                      const SizedBox(height: 5),
+                                      DropdownButtonFormField<String>(
+                                        value: item['selectedBoy'],
+                                        hint: const Text("Select Delivery Boy"),
+                                        items: deliveryBoys.map((boy) {
+                                          return DropdownMenuItem(
+                                            value: boy['boy_id'].toString(),
+                                            child: Text(boy['boy_name']),
+                                          );
+                                        }).toList(),
+                                        onChanged: item['status'] == 3
+                                            ? null
+                                            : (value) {
+                                                setState(() {
+                                                  item['selectedBoy'] = value ?? '';
+                                                });
+                                              },
+                                      ),
+                                    ],
+                                  ),
                                   trailing: ElevatedButton(
-                                    onPressed: item['status'] == 5 ? null : () => markAsDelivered(item['id']),
-                                    child: const Text("Mark as Delivered"),
+                                    onPressed: item['status'] == 3
+                                        ? null
+                                        : () => conformed(item['id']),
+                                    child: const Text("Confirm"),
                                   ),
                                 ),
                               );
