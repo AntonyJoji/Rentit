@@ -9,32 +9,40 @@ class DeliveryHistoryPage extends StatefulWidget {
 class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
   late Future<List<dynamic>> deliveryHistory;
 
-  // Function to fetch delivery history with cart_status = 4
   Future<List<dynamic>> fetchDeliveryHistory() async {
     try {
       final response = await Supabase.instance.client
           .from('tbl_cart')
-          .select('cart_id, tbl_item!inner(item_name), user_name, cart_status') // Using inner join to fetch item_name from tbl_item
-          .eq('cart_status', 4) // Only fetch delivered items
-          .order('cart_id', ascending: false) // Optional: Order by cart_id (newest first)
-          .execute();
+          .select('cart_status, tbl_item!inner(item_name, item_photo)')
+          .eq('cart_status', 4)
+          .order('cart_id', ascending: false)
+          .limit(100);
 
-      if (response.error == null) {
-        return response.data as List<dynamic>;
-      } else {
-        print('Error fetching delivery history: ${response.error?.message}');
-        return [];
-      }
+      return response as List<dynamic>;
     } catch (e) {
       print('Error fetching delivery history: $e');
       return [];
     }
   }
 
+  String getCartStatusLabel(int status) {
+    switch (status) {
+      case 1:
+        return 'Ordered';
+      case 2:
+        return 'Packed';
+      case 3:
+        return 'Shipped';
+      case 4:
+        return 'Delivered';
+      default:
+        return 'Unknown';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-    // Initialize delivery history
     deliveryHistory = fetchDeliveryHistory();
   }
 
@@ -60,14 +68,19 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
               itemCount: history.length,
               itemBuilder: (context, index) {
                 final item = history[index];
-                final itemName = item['tbl_item']['item_name'];
-                final userName = item['user_name'];
+                final itemName = item['tbl_item']['item_name'] ?? 'Unknown Item';
+                final itemImageUrl = item['tbl_item']['item_photo'] ?? '';
+                final cartStatus = item['cart_status'];
+
                 return Card(
                   margin: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                   child: ListTile(
+                    leading: itemImageUrl.isNotEmpty
+                        ? Image.network(itemImageUrl, width: 50, height: 50, fit: BoxFit.cover)
+                        : Icon(Icons.image, size: 50, color: Colors.grey), // Placeholder if no image
                     title: Text(itemName, style: TextStyle(fontSize: 18)),
-                    subtitle: Text('Delivered to: $userName', style: TextStyle(fontSize: 16)),
-                    leading: Icon(Icons.delivery_dining, color: Colors.green),
+                    subtitle: Text('Status: ${getCartStatusLabel(cartStatus)}',
+                        style: TextStyle(fontSize: 16)),
                   ),
                 );
               },

@@ -55,47 +55,48 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
   }
 
   // Fetch assigned deliveries for the delivery boy
-  Future<void> fetchDeliveries() async {
-    setState(() => isLoading = true);
+ Future<void> fetchDeliveries() async {
+  setState(() => isLoading = true);
 
-    try {
-      // Fetch deliveries from tbl_cart with the booking details
-      final response = await Supabase.instance.client
-          .from('tbl_cart')
-          .select(
-              'cart_id, cart_qty, tbl_booking(booking_id, user_id), tbl_item(item_name), cart_status')
-          .eq('cart_status', 3) // Filter deliveries that are 'picked up'
-          .eq('boy_id', widget.boyId);
+  try {
+    // Fetch deliveries from tbl_cart with the booking details
+    final response = await Supabase.instance.client
+        .from('tbl_cart')
+        .select(
+            'cart_id, cart_qty, tbl_booking(booking_id, user_id), tbl_item(item_name), cart_status')
+        .eq('cart_status', 3) // Filter deliveries that are 'picked up'
+        .eq('boy_id', widget.boyId);
 
-      // Fetch user_name for each delivery using user_id from tbl_booking
-      for (var delivery in response) {
-        final userId = delivery['tbl_booking']['user_id'];
-        final userResponse = await Supabase.instance.client
-            .from('tbl_user')
-            .select('user_name')
-            .eq('user_id', userId)
-            .maybeSingle();
+    // Fetch user_name for each delivery using user_id from tbl_booking
+    for (var delivery in response) {
+      final userId = delivery['tbl_booking']['user_id'];
+      final userResponse = await Supabase.instance.client
+          .from('tbl_user')
+          .select('user_name')
+          .eq('user_id', userId)
+          .maybeSingle();
 
-        if (userResponse != null && userResponse['user_name'] != null) {
-          delivery['user_name'] = userResponse['user_name'];
-        } else {
-          delivery['user_name'] = 'Unknown User';
-        }
+      if (userResponse != null && userResponse['user_name'] != null) {
+        delivery['user_name'] = userResponse['user_name'];
+      } else {
+        delivery['user_name'] = 'Unknown User';
       }
-
-      setState(() {
-        deliveries = response;
-        isLoading = false;
-      });
-
-      print('Deliveries: $deliveries'); // Debugging output
-    } catch (e) {
-      print('Error fetching deliveries: $e');
-      setState(() {
-        isLoading = false;
-      });
     }
+
+    setState(() {
+      deliveries = response;
+      isLoading = false;
+    });
+
+    print('Deliveries: $deliveries'); // Debugging output
+  } catch (e) {
+    print('Error fetching deliveries: $e');
+    setState(() {
+      isLoading = false;
+    });
   }
+}
+
 
   // Logout method
   void logout() {
