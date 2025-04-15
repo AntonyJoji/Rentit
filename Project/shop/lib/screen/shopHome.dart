@@ -7,6 +7,7 @@ import 'package:shop/screen/deleveryboy.dart';
 import 'package:shop/screen/manageBooking.dart';
 import 'package:shop/screen/addProduct.dart';
 import 'package:shop/screen/manageProduct.dart';
+import 'package:shop/screen/returning.dart';
 
 
 
@@ -28,6 +29,7 @@ class _ShopHomeState extends State<Shophome> {
     ManageProductsPage(),
     ComplaintPage(),
     deliregistration(),
+    PurchasedItemsPage(),
   
     const Center(child: Text('Settings Content')),
   ];

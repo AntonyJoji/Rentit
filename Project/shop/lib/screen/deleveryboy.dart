@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:shop/main.dart';
+//import 'package:shop/main.dart';
 import 'package:shop/services/auth_service.dart';
-import 'dart:io';
+//import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class deliregistration extends StatefulWidget {
