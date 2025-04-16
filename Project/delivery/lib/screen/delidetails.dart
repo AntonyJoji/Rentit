@@ -13,7 +13,7 @@ class DeliveryDetails extends StatefulWidget {
 
 class _DeliveryDetailsState extends State<DeliveryDetails> {
   late int totalDays;
-  late double totalAmount;
+  late int totalAmount;
   String formattedTotalAmount = '';
   String formattedStartDate = '';
   String formattedReturnDate = '';
@@ -22,7 +22,6 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   @override
   void initState() {
     super.initState();
-    calculateAmount();
     fetchUserData();
   }
 
@@ -30,7 +29,7 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   Future<void> fetchUserData() async {
   final userId = widget.delivery['tbl_booking']['user_id'];
   try {
-    // Fetching data from the tbl_user table based on user_id
+    // Fetching data from tbl_user
     final userResponse = await Supabase.instance.client
         .from('tbl_user')
         .select('*')
@@ -39,26 +38,28 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
 
     if (userResponse != null) {
       setState(() {
-        user = userResponse as Map<String, dynamic>;
+        user = userResponse;
       });
     } else {
       print('Error fetching user data: $userResponse');
     }
 
-    // Fetching booking data based on booking_id to get start_date and return_date
+    // Fetching booking data for start_date and return_date
     final bookingId = widget.delivery['tbl_booking']['booking_id'];
     final bookingResponse = await Supabase.instance.client
         .from('tbl_booking')
-        .select('start_date, return_date') // Only selecting the start_date and return_date fields
+        .select('start_date, return_date')
         .eq('booking_id', bookingId)
         .single();
 
     if (bookingResponse != null) {
-      // Set the start_date and return_date values
       setState(() {
-        formattedStartDate = bookingResponse['start_date'] ?? 'N/A';
-        formattedReturnDate = bookingResponse['return_date'] ?? 'N/A';
+        widget.delivery['tbl_booking']['start_date'] = bookingResponse['start_date'];
+        widget.delivery['tbl_booking']['return_date'] = bookingResponse['return_date'];
       });
+
+      // Now calculate the amount after setting the dates
+      calculateAmount();
     } else {
       print('Error fetching booking data: $bookingResponse');
     }
@@ -67,60 +68,91 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   }
 }
 
-  void calculateAmount() {
-  final booking = widget.delivery['tbl_booking'] ?? {};
-  final item = widget.delivery['tbl_item'] ?? {};
 
-  // Debugging: Check if data is being passed correctly
-  print("Delivery: ${widget.delivery}");
-  print("Booking: $booking");
-  print("Item: $item");
+ void calculateAmount() {
+    final booking = widget.delivery['tbl_booking'] ?? {};
+    final item = widget.delivery['tbl_item'] ?? {};
 
-  // Ensure that fields exist before accessing them
-  double itemPrice = double.tryParse(item['item_rentprice']?.toString() ?? '0') ?? 0.0;
-  String startDateStr = booking['start_date'] ?? '';
-  String returnDateStr = booking['return_date'] ?? '';
+    // Debugging: Print complete data
+    print("Complete Delivery Data: ${widget.delivery}");
+    print("Booking Data: $booking");
+    print("Item Data: $item");
 
-  // Debugging: Print the dates
-  print("Start Date String: $startDateStr");
-  print("Return Date String: $returnDateStr");
-
-  totalDays = 1;  // Default to 1 if there is no valid date range
-  totalAmount = itemPrice;
-
-  try {
-    if (startDateStr.isNotEmpty && returnDateStr.isNotEmpty) {
-      DateTime startDate = DateTime.parse(startDateStr);
-      DateTime returnDate = DateTime.parse(returnDateStr);
-
-      // Calculate the difference in days between the start date and return date
-      totalDays = returnDate.difference(startDate).inDays;
-      if (totalDays <= 0) totalDays = 1;  // Ensure at least 1 day is considered
-
-      // Calculate the total amount
-      totalAmount = itemPrice * totalDays;
-
-      // Format the dates
-      formattedStartDate = DateFormat('dd MMM yyyy').format(startDate);
-      formattedReturnDate = DateFormat('dd MMM yyyy').format(returnDate);
-    } else {
-      formattedStartDate = 'N/A';
-      formattedReturnDate = 'N/A';
+    // Get item price with null safety
+    int itemPrice = 0;
+    if (item['item_rentprice'] != null) {
+      itemPrice = item['item_rentprice'];
     }
-  } catch (e) {
-    print('Date parsing error: $e');
-    formattedStartDate = 'Invalid';
-    formattedReturnDate = 'Invalid';
+    print("Raw Item Price: ${item['item_rentprice']}");
+    print("Parsed Item Price: $itemPrice");
+
+    // Get dates with null safety
+    String startDateStr = booking['start_date']?.toString() ?? '';
+    String returnDateStr = booking['return_date']?.toString() ?? '';
+    print("Raw Start Date: ${booking['start_date']}");
+    print("Raw Return Date: ${booking['return_date']}");
+
+    totalDays = 1;  // Default to 1 if there is no valid date range
+    totalAmount = itemPrice;
+
+    try {
+      if (startDateStr.isNotEmpty && returnDateStr.isNotEmpty) {
+        // Remove any timezone information if present
+        startDateStr = startDateStr.split('T')[0];
+        returnDateStr = returnDateStr.split('T')[0];
+        print("Cleaned Start Date: $startDateStr");
+        print("Cleaned Return Date: $returnDateStr");
+
+        DateTime startDate = DateTime.parse(startDateStr);
+        DateTime returnDate = DateTime.parse(returnDateStr);
+        print("Parsed Start Date: $startDate");
+        print("Parsed Return Date: $returnDate");
+
+        // Calculate the difference in days between the start date and return date
+        totalDays = returnDate.difference(startDate).inDays + 1; // Add 1 to include both start and end dates
+        if (totalDays <= 0) totalDays = 1;  // Ensure at least 1 day is considered
+
+        // Calculate the total amount
+        totalAmount = itemPrice * totalDays;
+
+        // Debugging: Print all calculation details
+        print("Calculation Details:");
+        print("- Item Price: $itemPrice");
+        print("- Total Days: $totalDays");
+        print("- Total Amount: $totalAmount");
+
+        // Format the dates
+        formattedStartDate = DateFormat('dd MMM yyyy').format(startDate);
+        formattedReturnDate = DateFormat('dd MMM yyyy').format(returnDate);
+      } else {
+        print("Missing date information");
+        print("Start Date Empty: ${startDateStr.isEmpty}");
+        print("Return Date Empty: ${returnDateStr.isEmpty}");
+        formattedStartDate = 'N/A';
+        formattedReturnDate = 'N/A';
+      }
+    } catch (e) {
+      print('Date parsing error: $e');
+      print('Start Date: $startDateStr');
+      print('Return Date: $returnDateStr');
+      formattedStartDate = 'Invalid';
+      formattedReturnDate = 'Invalid';
+    }
+
+    // Format the total amount
+    formattedTotalAmount = NumberFormat.currency(symbol: '₹', decimalDigits: 2)
+        .format(totalAmount);
+
+    setState(() {
+      // Ensure UI is updated after recalculating
+    });
+
+    // Final debug output
+    print("Final Results:");
+    print("- Formatted Start Date: $formattedStartDate");
+    print("- Formatted Return Date: $formattedReturnDate");
+    print("- Formatted Total Amount: $formattedTotalAmount");
   }
-
-  // Format the total amount
-  formattedTotalAmount = NumberFormat.currency(symbol: '₹', decimalDigits: 2)
-      .format(totalAmount);
-
-  setState(() {
-    // Ensure UI is updated after recalculating
-  });
-}
 
 
   Future<void> updateDeliveryStatus() async {

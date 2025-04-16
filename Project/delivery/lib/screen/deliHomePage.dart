@@ -55,7 +55,7 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
       final response = await Supabase.instance.client
           .from('tbl_cart')
           .select(
-              'cart_id, cart_qty, boy_id, booking_id, cart_status, tbl_booking(booking_id, user_id), tbl_item(item_name)')
+              'cart_id, cart_qty, boy_id, booking_id, cart_status, tbl_booking(booking_id, user_id), tbl_item(item_name,item_rentprice)')
           .inFilter('cart_status', [3, 5])
           .eq('boy_id', widget.boyId);
 
