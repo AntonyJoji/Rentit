@@ -18,7 +18,7 @@ class _SideBarState extends State<SideBar> {
     "Manage Product",
     "Complaints",
     "deleveryboy",
-    "returning"
+    "ShopRentedItemsPage"
   ];
   final List<IconData> icons = [
     Icons.map,

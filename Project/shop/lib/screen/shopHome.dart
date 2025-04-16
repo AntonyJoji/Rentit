@@ -7,7 +7,8 @@ import 'package:shop/screen/deleveryboy.dart';
 import 'package:shop/screen/manageBooking.dart';
 import 'package:shop/screen/addProduct.dart';
 import 'package:shop/screen/manageProduct.dart';
-import 'package:shop/screen/returning.dart';
+import 'package:shop/screen/ShopRentedItemsPage.dart';
+
 
 
 
@@ -29,7 +30,7 @@ class _ShopHomeState extends State<Shophome> {
     ManageProductsPage(),
     ComplaintPage(),
     deliregistration(),
-    PurchasedItemsPage(),
+    ShopRentedItemsPage(),
   
     const Center(child: Text('Settings Content')),
   ];
@@ -53,7 +54,7 @@ class _ShopHomeState extends State<Shophome> {
                 )),
             Expanded(
               flex: 5,
-              child: Column(
+              child: ListView(
                 children: [
                   Appbar1(),
                   _pages[_selectedIndex],
