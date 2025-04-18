@@ -76,7 +76,7 @@ Widget build(BuildContext context) {
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16.0),
-                    title: Text("Booking ID: ${booking['booking_id']}"),
+                    title: Text(cartItems.isNotEmpty ? cartItems[0]['tbl_item']['item_name'] ?? 'Unknown Item' : 'No Items'),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
