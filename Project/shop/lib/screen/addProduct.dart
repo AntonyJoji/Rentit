@@ -121,9 +121,10 @@ class _addProductState extends State<addProduct> {
 
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+Widget build(BuildContext context) {
+  return Center(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0), // Reduced horizontal padding
       child: Card(
         elevation: 5,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -138,10 +139,16 @@ class _addProductState extends State<addProduct> {
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
+                
+                // Item Name Field
                 TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(labelText: "Item Name"),
                 ),
+                
+                const SizedBox(height: 10), // Adjusted spacing between elements
+
+                // Category Dropdown
                 DropdownButtonFormField(
                   value: _selectedCategory,
                   items: categories.map((category) {
@@ -161,6 +168,10 @@ class _addProductState extends State<addProduct> {
                   },
                   decoration: const InputDecoration(labelText: "Category"),
                 ),
+                
+                const SizedBox(height: 10), // Adjusted spacing
+
+                // Subcategory Dropdown
                 DropdownButtonFormField(
                   value: _selectedSubcategory,
                   items: subcategories.map((sub) {
@@ -178,20 +189,31 @@ class _addProductState extends State<addProduct> {
                   },
                   decoration: const InputDecoration(labelText: "Subcategory"),
                 ),
+                
+                const SizedBox(height: 10), // Adjusted spacing
+
+                // Rental Price Field
                 TextField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(labelText: "Rental Price"),
                 ),
+                
+                const SizedBox(height: 10), // Adjusted spacing
+
+                // Details Field
                 TextField(
                   controller: _detailsController,
                   decoration: const InputDecoration(labelText: "Details"),
                   maxLines: 3,
                 ),
-                const SizedBox(height: 10),
+                
+                const SizedBox(height: 20),
+
+                // Image Picker
                 SizedBox(
-                  height: 120,
-                  width: 120,
+                  height: 100, // Reduced height for image picker
+                  width: 100,  // Reduced width for image picker
                   child: pickedImage == null
                       ? GestureDetector(
                           onTap: handleImagePick,
@@ -211,21 +233,16 @@ class _addProductState extends State<addProduct> {
                                     fit: BoxFit.cover,
                                   )
                                 : Image.file(
-                                    File(pickedImage!
-                                        .path!), // For mobile/desktop
+                                    File(pickedImage!.path!), // For mobile/desktop
                                     fit: BoxFit.cover,
                                   ),
                           ),
                         ),
                 ),
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
-                  ),
-                ),
+                
                 const SizedBox(height: 10),
+
+                // Add Item Button
                 ElevatedButton(
                   onPressed: _submitProduct,
                   child: const Text("Add Item"),
@@ -235,6 +252,7 @@ class _addProductState extends State<addProduct> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

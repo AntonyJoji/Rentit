@@ -148,110 +148,153 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 }
   
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 245, 245, 250),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Order Details",
-                    style: GoogleFonts.sanchez(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  if (userDetails != null)
-                    Card(
-                      child: ListTile(
-                        title: Text("Name: ${userDetails!['user_name']}"),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Address: ${userDetails!['user_address']}"),
-                            Text("Contact: ${userDetails!['user_contact']}"),
-                          ],
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: const Color.fromARGB(255, 245, 245, 250), // Light background for the scaffold
+    body: isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Card(
+              elevation: 8, // Added elevation for shadow effect
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16), // Rounded corners
+              ),
+              color: Colors.white, // White background for the card
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title Section
+                    Center(
+                      child: Text(
+                        "Order Details",
+                        style: GoogleFonts.sanchez(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                       ),
                     ),
-                  const SizedBox(height: 20),
-                  if (bookingDetails != null)
-                    Card(
-                      child: ListTile(
-                        title: Text("Booking Date: ${bookingDetails!['booking_date']}"),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Return Date: ${bookingDetails!['return_date']}"),
-                            Text("Total Price: \$${bookingDetails!['booking_totalprice']}"),
-                            Text("Payment Status: ${bookingDetails!['payment_status']}"),
-                          ],
+                    const SizedBox(height: 20),
+
+                    // User Details Section (Inside Card)
+                    if (userDetails != null)
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ),
-                    ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: orderItems.isEmpty
-                        ? const Center(child: Text("No items in this order"))
-                        : ListView.builder(
-                            itemCount: orderItems.length,
-                            itemBuilder: (context, index) {
-                              final item = orderItems[index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(vertical: 10),
-                                child: ListTile(
-                                  leading: Image.network(
-                                    item['image'],
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  title: Text(item['product']),
-                                  subtitle: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Quantity: ${item['qty']}"),
-                                      const SizedBox(height: 5),
-                                      DropdownButtonFormField<String>(
-                                        value: item['selectedBoy'],
-                                        hint: const Text("Select Delivery Boy"),
-                                        items: deliveryBoys.map((boy) {
-                                          return DropdownMenuItem(
-                                            value: boy['boy_id'].toString(),
-                                            child: Text(boy['boy_name']),
-                                          );
-                                        }).toList(),
-                                        onChanged: item['status'] == 3
-                                            ? null
-                                            : (value) {
-                                                setState(() {
-                                                  item['selectedBoy'] = value ?? '';
-                                                });
-                                              },
-                                      ),
-                                    ],
-                                  ),
-                                  trailing: ElevatedButton(
-                                    onPressed: item['status'] == 3
-                                        ? null
-                                        : () => conformed(item['id']),
-                                    child: const Text("Confirm"),
-                                  ),
-                                ),
-                              );
-                            },
+                        child: ListTile(
+                          title: Text("Name: ${userDetails!['user_name']}"),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Address: ${userDetails!['user_address']}"),
+                              Text("Contact: ${userDetails!['user_contact']}"),
+                            ],
                           ),
-                  ),
-                ],
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Booking Details Section (Inside Card)
+                    if (bookingDetails != null)
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: ListTile(
+                          title: Text("Booking Date: ${bookingDetails!['booking_date']}"),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Return Date: ${bookingDetails!['return_date']}"),
+                              Text("Total Price: \$${bookingDetails!['booking_totalprice']}"),
+                              Text("Payment Status: ${bookingDetails!['payment_status']}"),
+                            ],
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Order Items Section (Inside Card)
+                    Expanded(
+                      child: orderItems.isEmpty
+                          ? const Center(child: Text("No items in this order"))
+                          : ListView.builder(
+                              itemCount: orderItems.length,
+                              itemBuilder: (context, index) {
+                                final item = orderItems[index];
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 10),
+                                  elevation: 6, // Elevated Card for each item
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    leading: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        item['image'],
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return const Icon(Icons.broken_image, size: 50);
+                                        },
+                                      ),
+                                    ),
+                                    title: Text(item['product']),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Quantity: ${item['qty']}"),
+                                        const SizedBox(height: 5),
+                                        // Delivery Boy Dropdown
+                                        DropdownButtonFormField<String>(
+                                          value: item['selectedBoy'],
+                                          hint: const Text("Select Delivery Boy"),
+                                          items: deliveryBoys.map((boy) {
+                                            return DropdownMenuItem(
+                                              value: boy['boy_id'].toString(),
+                                              child: Text(boy['boy_name']),
+                                            );
+                                          }).toList(),
+                                          onChanged: item['status'] == 3
+                                              ? null
+                                              : (value) {
+                                                  setState(() {
+                                                    item['selectedBoy'] = value ?? '';
+                                                  });
+                                                },
+                                        ),
+                                      ],
+                                    ),
+                                    trailing: ElevatedButton(
+                                      onPressed: item['status'] == 3
+                                          ? null
+                                          : () => conformed(item['id']),
+                                      child: const Text("Confirm"),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: item['status'] == 3
+                                            ? Colors.grey
+                                            : Colors.green,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             ),
-    );
-  }
+          ),
+  );
+}
 }

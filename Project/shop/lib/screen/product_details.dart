@@ -163,37 +163,32 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.product['item_name']),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: showEditDialog,
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.all(8),
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    appBar: AppBar(
+      title: Text(widget.product['item_name']),
+    ),
+    body: SingleChildScrollView( // Make the entire content scrollable
+      padding: const EdgeInsets.all(16.0),
+      child: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Centered Product Image
+              Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
-                    widget.product['item_photo'] ??
-                        'https://via.placeholder.com/150',
-                    height: 200,
-                    width: 300,
+                    widget.product['item_photo'] ?? 'https://via.placeholder.com/150',
+                    height: 200, // Adjust the height of the image
+                    width: 200,  // Adjust the width to control the size
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return const Center(
@@ -202,46 +197,48 @@ class _ProductDetailsState extends State<ProductDetails> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              widget.product['item_name'] ?? 'No Name',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Rent Price: \$${widget.product['item_rentprice'] ?? '0.00'}",
-              style: const TextStyle(fontSize: 18, color: Colors.green),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.product['item_detail'] ?? 'No details available.',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              "Total Stock: $totalStock",
-              style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "Stock History:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            stockHistory.isEmpty
-                ? const Text("No stock history available.")
-                : Expanded(
-                    child: ListView.builder(
+              const SizedBox(height: 16),
+
+              // Product Name and Rent Price
+              Text(
+                widget.product['item_name'] ?? 'No Name',
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Rent Price: \$${widget.product['item_rentprice'] ?? '0.00'}",
+                style: const TextStyle(fontSize: 18, color: Colors.green),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.product['item_detail'] ?? 'No details available.',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+
+              // Total Stock Info
+              Text(
+                "Total Stock: $totalStock",
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue),
+              ),
+              const SizedBox(height: 16),
+
+              // Stock History
+              const Text(
+                "Stock History:",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              stockHistory.isEmpty
+                  ? const Text("No stock history available.")
+                  : ListView.builder(
                       shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: stockHistory.length,
                       itemBuilder: (context, index) {
                         final stock = stockHistory[index];
                         return ListTile(
-                          leading:
-                              const Icon(Icons.history, color: Colors.blue),
+                          leading: const Icon(Icons.history, color: Colors.blue),
                           title: Text("Added: ${stock['stock_quantity']}"),
                           subtitle: Text(
                             "Date: ${DateTime.parse(stock['stock_date']).toLocal()}",
@@ -249,15 +246,32 @@ class _ProductDetailsState extends State<ProductDetails> {
                         );
                       },
                     ),
-                  ),
-          ],
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: showStockDialog,
-        label: const Text('Add Stock'),
-        icon: const Icon(Icons.add),
-      ),
-    );
-  }
+    ),
+    floatingActionButton: Row(  // Row to align both buttons side by side
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Edit Button
+        Padding(
+          padding: const EdgeInsets.only(right: 8.0),
+          child: FloatingActionButton(
+            onPressed: showEditDialog,
+            child: const Icon(Icons.edit),
+            backgroundColor: Colors.blue,
+          ),
+        ),
+        // Add Stock Button
+        FloatingActionButton.extended(
+          onPressed: showStockDialog,
+          label: const Text('Add Stock'),
+          icon: const Icon(Icons.add),
+          backgroundColor: Colors.green,
+        ),
+      ],
+    ),
+  );
+}
 }

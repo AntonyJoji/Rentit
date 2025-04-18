@@ -38,59 +38,67 @@ class _SideBarState extends State<SideBar> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [
-        const Color.fromARGB(255, 210, 155, 155),
-        const Color.fromARGB(255, 141, 132, 132)
-      ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Add Dashboard Heading
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  "Dashboard",
-                  style: TextStyle(
-                    color: const Color.fromARGB(255, 74, 73, 73),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+ @override
+Widget build(BuildContext context) {
+  return Container(
+    width: 250,
+    decoration: const BoxDecoration(
+      gradient: LinearGradient(
+        colors: [Color(0xFF4092D6), Color(0xFF3A6EA5)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Text(
+                "Dashboard",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              // ListView for Sidebar Items
-              ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: pages.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        widget.onItemSelected(index);
-                      },
-                      leading: Icon(icons[index], color: Colors.white),
-                      title: Text(pages[index],
-                          style: TextStyle(color: Colors.white)),
-                    );
-                  }),
-            ],
-          ),
-          // Logout Section
-          ListTile(
-            leading: Icon(Icons.logout_outlined, color: Colors.white),
-            title: Text(
-              "Logout",
-              style: TextStyle(color: Colors.white),
             ),
-            onTap: () => logout(context),
+            ListView.builder(
+              shrinkWrap: true,
+              itemCount: pages.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  leading: Icon(icons[index], color: Colors.white),
+                  title: Text(
+                    pages[index],
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  hoverColor: Colors.white12, // for web
+                  onTap: () {
+                    widget.onItemSelected(index);
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+        const Divider(color: Colors.white24, thickness: 1),
+        ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+          leading: const Icon(Icons.logout_outlined, color: Colors.white),
+          title: const Text(
+            "Logout",
+            style: TextStyle(color: Colors.white),
           ),
-        ],
-      ),
-    );
-  }
+          onTap: () => logout(context),
+        ),
+        const SizedBox(height: 20),
+      ],
+    ),
+  );
+}
 }

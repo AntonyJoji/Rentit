@@ -39,13 +39,18 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
   try {
     final supabase = Supabase.instance.client;
 
-    // Delete related stock entries first
+    // First, delete related entries in the tbl_cart table that reference the product
+    await supabase.from('tbl_cart').delete().eq('item_id', productId);
+
+    // Optionally, you can also delete related stock entries
     await supabase.from('tbl_stock').delete().eq('item_id', productId);
 
-    // Now delete the product
+    // Now delete the product itself
     await supabase.from('tbl_item').delete().eq('item_id', productId);
 
-    _fetchProducts(); // Refresh after delete
+    // Refresh the product list
+    _fetchProducts();
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Product deleted successfully!"),
