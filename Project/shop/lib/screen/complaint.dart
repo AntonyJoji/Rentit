@@ -42,21 +42,52 @@ class _ComplaintPageState extends State<ComplaintPage> {
             itemCount: complaints.length,
             itemBuilder: (context, index) {
               final complaint = complaints[index];
-              final itemName =
-                  complaint['tbl_item']['item_name'] ?? 'No Item Name';
+              final itemName = complaint['tbl_item']['item_name'] ?? 'No Item Name';
+              final complaintTitle = complaint['complaint_title'] ?? 'No Title';
+              final complaintStatus = complaint['complaint_status'] != null
+                  ? int.tryParse(complaint['complaint_status'].toString()) ?? 0
+                  : 0; // Ensuring complaint_status is treated as an integer
+
+              // Skip complaints with status 1 (Replied)
+              if (complaintStatus == 1) {
+                return SizedBox.shrink(); // Return an empty widget for replied complaints
+              }
 
               return Card(
-                elevation: 3,
-                margin: const EdgeInsets.only(bottom: 10),
+                elevation: 5,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: ListTile(
-                  title: Text(itemName),
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: Icon(
+                    Icons.report_problem,
+                    color: Colors.orangeAccent,
+                    size: 30,
+                  ),
+                  title: Text(
+                    itemName,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(complaint['complaint_title'] ?? 'No Title'),
+                      Text(
+                        complaintTitle,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
                       const SizedBox(height: 5),
                       Text(
-                          'Status: ${complaint['complaint_status'] ?? 'Unknown'}'),
+                        'Status: Pending',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.orangeAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   trailing: ElevatedButton(
@@ -66,19 +97,24 @@ class _ComplaintPageState extends State<ComplaintPage> {
                         MaterialPageRoute(
                           builder: (context) => ComplaintDetailsPage(
                             itemName: itemName,
-                            complaintTitle:
-                                complaint['complaint_title'] ?? 'No Title',
-                            complaintStatus: int.tryParse(
-                                    complaint['complaint_status'].toString()) ??
-                                0,
-                            complaintId: int.tryParse(
-                                    complaint['complaint_id'].toString()) ??
-                                0, // Ensure ID is converted
+                            complaintTitle: complaintTitle,
+                            complaintStatus: complaintStatus,
+                            complaintId: int.tryParse(complaint['complaint_id'].toString()) ?? 0,
                           ),
                         ),
                       );
                     },
-                    child: const Text('Reply'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    ),
+                    child: const Text(
+                      'Reply',
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ),
                 ),
               );

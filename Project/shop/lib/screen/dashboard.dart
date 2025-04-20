@@ -18,25 +18,22 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    fetchTotalOrders(1); // Replace 1 with the actual shopId
-    fetchPendingOrders(1); // Replace 1 with the actual shopId
-    fetchCompletedOrders(1); // Replace 1 with the actual shopId
-    fetchEarnings(1); // Replace 1 with the actual shopId
+    final shopId = Supabase.instance.client.auth.currentUser?.id;
+    if (shopId != null) {
+      fetchTotalOrders(shopId);
+      fetchPendingOrders(shopId);
+      fetchCompletedOrders(shopId);
+      fetchEarnings(shopId);
+    }
   }
 
   // Fetch total orders
-  Future<void> fetchTotalOrders(int shopId) async {
+  Future<void> fetchTotalOrders(String shopId) async {
     try {
       final cartResponse = await Supabase.instance.client
           .from('tbl_cart')
-          .select('item_id')
-          .eq('cart_status', 1) // Adjust to match your criteria for total orders
-          .order('cart_id', ascending: true);
-
-      if (cartResponse.isEmpty) {
-        setState(() => totalOrders = 0);
-        return;
-      }
+          .select('cart_id, tbl_item!inner(shop_id)')
+          .eq('tbl_item.shop_id', shopId);
 
       setState(() {
         totalOrders = cartResponse.length;
@@ -47,13 +44,13 @@ class _DashboardState extends State<Dashboard> {
   }
 
   // Fetch pending orders
-  Future<void> fetchPendingOrders(int shopId) async {
+  Future<void> fetchPendingOrders(String shopId) async {
     try {
       final cartResponse = await Supabase.instance.client
           .from('tbl_cart')
-          .select('item_id')
-          .eq('cart_status', 0) // Pending orders
-          .order('cart_id', ascending: true);
+          .select('cart_id, tbl_item!inner(shop_id)')
+          .eq('tbl_item.shop_id', shopId)
+          .eq('cart_status', 2);
 
       setState(() {
         pendingOrders = cartResponse.length;
@@ -64,13 +61,13 @@ class _DashboardState extends State<Dashboard> {
   }
 
   // Fetch completed orders
-  Future<void> fetchCompletedOrders(int shopId) async {
+  Future<void> fetchCompletedOrders(String shopId) async {
     try {
       final cartResponse = await Supabase.instance.client
           .from('tbl_cart')
-          .select('item_id')
-          .eq('cart_status', 1) // Completed orders
-          .order('cart_id', ascending: true);
+          .select('cart_id, tbl_item!inner(shop_id)')
+          .eq('tbl_item.shop_id', shopId)
+          .eq('cart_status', 3);
 
       setState(() {
         completedOrders = cartResponse.length;
@@ -81,21 +78,17 @@ class _DashboardState extends State<Dashboard> {
   }
 
   // Fetch earnings
-  Future<void> fetchEarnings(int shopId) async {
+  Future<void> fetchEarnings(String shopId) async {
     try {
-      final cartResponse = await Supabase.instance.client
-          .from('tbl_cart')
-          .select('cart_totalprice') // Assuming this field holds the price
-          .eq('cart_status', 1) // Completed orders only
-          .order('cart_id', ascending: true);
-
-      double totalEarnings = 0;
-      for (var item in cartResponse) {
-        totalEarnings += item['cart_totalprice'] ?? 0.0;
-      }
+      final earningsResponse = await Supabase.instance.client
+          .from('tbl_booking')
+          .select('booking_totalprice, tbl_cart!inner(tbl_item!inner(shop_id))')
+          .eq('tbl_cart.tbl_item.shop_id', shopId)
+          .eq('payment_status', 'completed');
 
       setState(() {
-        earnings = totalEarnings;
+        earnings = earningsResponse.fold<double>(
+            0, (sum, item) => sum + (item['booking_totalprice'] ?? 0));
       });
     } catch (error) {
       setState(() => earnings = 0.0);
