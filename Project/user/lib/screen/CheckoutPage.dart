@@ -243,59 +243,262 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Checkout")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ListView(
+      appBar: AppBar(
+        title: Text(
+          "Checkout",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Delivery Information",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Name: $userName"),
-            Text("Address: $userAddress"),
-            Text("Phone: $userPhone"),
-            SizedBox(height: 10),
-            Text("Start Date",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ListTile(
-              title: Text(
-                startDate == null
-                    ? "Select a start date"
-                    : DateFormat('yyyy-MM-dd').format(startDate!),
+            // Delivery Information Card
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              trailing: ElevatedButton(
-                onPressed: () => _selectDate(context, true),
-                child: Text("Pick Start Date"),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Delivery Information",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildInfoRow(Icons.person, "Name", userName),
+                  SizedBox(height: 8),
+                  _buildInfoRow(Icons.location_on, "Address", userAddress),
+                  SizedBox(height: 8),
+                  _buildInfoRow(Icons.phone, "Phone", userPhone),
+                ],
               ),
             ),
-            Text("Pickup Date",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ListTile(
-              title: Text(
-                pickupDate == null
-                    ? "Select a pickup date"
-                    : DateFormat('yyyy-MM-dd').format(pickupDate!),
+
+            // Date Selection Cards
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
-              trailing: ElevatedButton(
-                onPressed: startDate != null
-                    ? () => _selectDate(context, false)
-                    : null,
-                child: Text("Pick Pickup Date"),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Rental Period",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildDateSelectionCard(
+                    "Start Date",
+                    startDate,
+                    () => _selectDate(context, true),
+                    "Pick Start Date",
+                  ),
+                  SizedBox(height: 16),
+                  _buildDateSelectionCard(
+                    "Pickup Date",
+                    pickupDate,
+                    startDate != null ? () => _selectDate(context, false) : null,
+                    "Pick Pickup Date",
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 20),
-            Text("Total: \$${totalAmount.toStringAsFixed(2)}",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(
-                "Advance Payment: \$${_advancePaymentAmount.toStringAsFixed(2)}",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                
-            ElevatedButton(
-              onPressed: _confirmPayment,
-              child: Text("Proceed to Payment"),
+
+            // Payment Summary Card
+            Container(
+              width: double.infinity,
+              margin: EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Payment Summary",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _buildPaymentRow("Total Amount", totalAmount),
+                  SizedBox(height: 8),
+                  _buildPaymentRow("Advance Payment (30%)", _advancePaymentAmount),
+                  SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _confirmPayment,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        "Proceed to Payment",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: Colors.blueAccent, size: 20),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateSelectionCard(
+      String title, DateTime? date, VoidCallback? onPressed, String buttonText) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                date == null
+                    ? "Not selected"
+                    : DateFormat('yyyy-MM-dd').format(date),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blueAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(buttonText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentRow(String label, double amount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
+        ),
+        Text(
+          "₹${amount.toStringAsFixed(2)}",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.blueAccent,
+          ),
+        ),
+      ],
     );
   }
 }

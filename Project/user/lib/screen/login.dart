@@ -38,81 +38,144 @@ class _UserLoginPageState extends State<UserLoginPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Login",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+Widget build(BuildContext context) {
+  return Scaffold(
+    backgroundColor: Colors.grey[100],
+    body: Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // App Name
+            Text(
+              "RentIt",
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: Colors.blueAccent,
+                letterSpacing: 1.5,
               ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
+            ),
+            SizedBox(height: 30),
+
+            // Icon or Logo
+            Icon(Icons.lock_outline, size: 80, color: Colors.blueAccent),
+            SizedBox(height: 20),
+
+            // Welcome Text
+            Text(
+              "Welcome Back!",
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+            ),
+            SizedBox(height: 8),
+            Text(
+              "Login to continue",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.black54,
+              ),
+            ),
+            SizedBox(height: 30),
+
+            // Email Input
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: "Email",
+                prefixIcon: Icon(Icons.email_outlined),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Password Input
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: "Password",
+                prefixIcon: Icon(Icons.lock_outline),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
+            ),
+            SizedBox(height: 20),
+
+            // Login Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
                 onPressed: () {
-                  print("Button");
                   login();
                 },
                 style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
+                  padding: EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  backgroundColor: Colors.blueAccent,
                 ),
                 child: Text("Login", style: TextStyle(fontSize: 18)),
               ),
-              SizedBox(height: 10),
-              TextButton(
-                onPressed: () {},
-                child: Text("Forgot Password?"),
+            ),
+            SizedBox(height: 10),
+
+            // Forgot Password
+            TextButton(
+              onPressed: () {},
+              child: Text(
+                "Forgot Password?",
+                style: TextStyle(color: Colors.blueAccent),
               ),
-              TextButton(
-                onPressed: () {
-                   Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const Userregistration(),
-                          ),
-                        );
-                },
-                child: Text("Don't have an account? Register"),
-              ),
-            ],
-          ),
+            ),
+
+            // Register
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Don't have an account? "),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const Userregistration(),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    "Register",
+                    style: TextStyle(
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 30),
+          ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

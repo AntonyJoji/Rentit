@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'complaintpage.dart'; // Imported ComplaintPage
+import 'complaintpage.dart';
+import 'package:intl/intl.dart';
 
 class Mybookings extends StatefulWidget {
   const Mybookings({super.key});
@@ -49,6 +50,16 @@ class _MybookingsState extends State<Mybookings> {
     );
   }
 
+  String _formatDate(String? date) {
+    if (date == null) return 'N/A';
+    try {
+      final parsedDate = DateTime.parse(date);
+      return DateFormat('MMM dd, yyyy').format(parsedDate);
+    } catch (e) {
+      return date;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,81 +67,197 @@ class _MybookingsState extends State<Mybookings> {
       appBar: AppBar(
         title: const Text(
           "My Bookings",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
         elevation: 0,
+        iconTheme: IconThemeData(color: Colors.black87),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF64B5F6)))
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.blueAccent,
+              ),
+            )
           : bookings.isEmpty
               ? _buildEmptyBookings()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: bookings.length,
-                  itemBuilder: (context, index) {
-                    var booking = bookings[index];
-                    print(booking['tbl_cart']);
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
+              : RefreshIndicator(
+                  onRefresh: fetchBookings,
+                  color: Colors.blueAccent,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: bookings.length,
+                    itemBuilder: (context, index) {
+                      var booking = bookings[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Booking Header
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.blueAccent.withOpacity(0.1),
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(16),
+                                  topRight: Radius.circular(16),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    "Booking #${booking['booking_id']}",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blueAccent,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatDate(booking['booking_date']),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Items List
                             ListView.separated(
-                              separatorBuilder: (context, index) => const Divider(),
+                              padding: const EdgeInsets.all(16),
+                              separatorBuilder: (context, index) => const Divider(height: 24),
                               itemCount: booking['tbl_cart'].length,
                               shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
+                              physics: const NeverScrollableScrollPhysics(),
                               itemBuilder: (context, index) {
-                                print(booking['tbl_cart'][index]['tbl_item']);
-                              return ListTile(
-                                title: Text(booking['tbl_cart'][index]['tbl_item']['item_name']),
-                                subtitle: Text("Quantity: ${booking['tbl_cart'][index]['cart_qty']}"),
-                                trailing: ElevatedButton(
-                              onPressed: () => _submitComplaint(booking['tbl_cart'][index]['tbl_item']['item_id']),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.redAccent,
-                              ),
-                              child: const Text("Complaint"),
+                                var cartItem = booking['tbl_cart'][index];
+                                return Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            cartItem['tbl_item']['item_name'],
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            "Quantity: ${cartItem['cart_qty']}",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () => _submitComplaint(cartItem['tbl_item']['item_id']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Complaint",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             ),
-                              );
-                            },),
-                             const Divider(),
-                            Text(
-                              "Total Price: ₹${booking['booking_totalprice']}",
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF64B5F6),
-                                fontWeight: FontWeight.bold,
+                            // Booking Summary
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: const BorderRadius.only(
+                                  bottomLeft: Radius.circular(16),
+                                  bottomRight: Radius.circular(16),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              "Return Date: ${booking['return_date'] ?? 'N/A'}",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[700],
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        "Total Price",
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        "₹${booking['booking_totalprice']}",
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.blueAccent,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        "Return Date",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        _formatDate(booking['return_date']),
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey[700],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
     );
   }
