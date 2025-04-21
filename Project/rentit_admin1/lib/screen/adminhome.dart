@@ -28,8 +28,8 @@ class _AdminHomeState extends State<AdminHome> {
    ComplaintPage(),
    Manageshop(),
    Managedistrict(),
-   category(),
-   subCategory(),
+   ManageCategory(),
+   ManageSubcategory(),
    deliveryboy(),
     const Center(child: Text('Settings Content')),
   ];
@@ -53,7 +53,7 @@ class _AdminHomeState extends State<AdminHome> {
                 )),
             Expanded(
               flex: 5,
-              child: Column(
+              child: ListView(
                 children: [
                   Appbar1(),
                   _pages[_selectedIndex],

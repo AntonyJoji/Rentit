@@ -75,6 +75,19 @@ class _deliregistrationState extends State<deliregistration> {
       if (auth.user != null) {
         final uid = auth.user!.id;
         await storeData(uid);
+        
+        // Clear all input fields and selected files
+        setState(() {
+          _deliNameController.clear();
+          _deliContactController.clear();
+          _deliEmailController.clear();
+          _deliAddressController.clear();
+          _passwordController.clear();
+          _repassEditingController.clear();
+          _deliphoto = null;
+          _deliid = null;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Registration successful!')),
         );
@@ -141,6 +154,7 @@ class _deliregistrationState extends State<deliregistration> {
       'shop_id': shopId,
       'boy_photo': photoUrl,
       'boy_proof': proofUrl,
+      'boy_status': 1,
     });
 
     ScaffoldMessenger.of(context).showSnackBar(

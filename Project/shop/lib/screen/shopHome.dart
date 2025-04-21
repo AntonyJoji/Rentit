@@ -8,6 +8,7 @@ import 'package:shop/screen/manageBooking.dart';
 import 'package:shop/screen/addProduct.dart';
 import 'package:shop/screen/manageProduct.dart';
 import 'package:shop/screen/ShopRentedItemsPage.dart';
+import 'package:shop/screen/managedeleverboy.dart';
 
 
 
@@ -31,6 +32,7 @@ class _ShopHomeState extends State<Shophome> {
     ComplaintPage(),
     deliregistration(),
     ShopRentedItemsPage(),
+    managedeleverboy(),
   
     const Center(child: Text('Settings Content')),
   ];

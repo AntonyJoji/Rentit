@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -10,10 +12,12 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   int? totalOrders;
-  int? totalBookings;
   int? pendingOrders;
   int? completedOrders;
-  double? earnings;
+  List<FlSpot> earningsSpots = [];
+  List<FlSpot> ordersSpots = [];
+  double maxY = 0;
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -23,7 +27,7 @@ class _DashboardState extends State<Dashboard> {
       fetchTotalOrders(shopId);
       fetchPendingOrders(shopId);
       fetchCompletedOrders(shopId);
-      fetchEarnings(shopId);
+      fetchMonthlyData(shopId);
     }
   }
 
@@ -77,21 +81,70 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  // Fetch earnings
-  Future<void> fetchEarnings(String shopId) async {
+  // Fetch monthly data for graph
+  Future<void> fetchMonthlyData(String shopId) async {
     try {
-      final earningsResponse = await Supabase.instance.client
+      // Get data for the last 6 months
+      DateTime now = DateTime.now();
+      DateTime sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+
+      final bookingResponse = await Supabase.instance.client
           .from('tbl_booking')
-          .select('booking_totalprice, tbl_cart!inner(tbl_item!inner(shop_id))')
+          .select('booking_totalprice, start_date, tbl_cart!inner(tbl_item!inner(shop_id))')
           .eq('tbl_cart.tbl_item.shop_id', shopId)
-          .eq('payment_status', 'completed');
+          .gte('start_date', sixMonthsAgo.toIso8601String())
+          .order('start_date');
+
+      // Process data by month
+      Map<String, double> monthlyEarnings = {};
+      Map<String, int> monthlyOrders = {};
+
+      for (var booking in bookingResponse) {
+        DateTime bookingDate = DateTime.parse(booking['start_date']);
+        String monthKey = DateFormat('yyyy-MM').format(bookingDate);
+        
+        // Sum earnings
+        monthlyEarnings[monthKey] = (monthlyEarnings[monthKey] ?? 0) + 
+            (booking['booking_totalprice'] as num).toDouble();
+        
+        // Count orders
+        monthlyOrders[monthKey] = (monthlyOrders[monthKey] ?? 0) + 1;
+      }
+
+      // Convert to graph points
+      List<FlSpot> earningPoints = [];
+      List<FlSpot> orderPoints = [];
+      double maxEarnings = 0;
+      double maxOrders = 0;
+      int index = 0;
+
+      // Ensure we have data for all months
+      for (int i = 0; i < 6; i++) {
+        String monthKey = DateFormat('yyyy-MM').format(
+          DateTime(now.year, now.month - 5 + i, 1)
+        );
+        
+        double earnings = monthlyEarnings[monthKey] ?? 0;
+        int orders = monthlyOrders[monthKey] ?? 0;
+        
+        earningPoints.add(FlSpot(index.toDouble(), earnings));
+        orderPoints.add(FlSpot(index.toDouble(), orders.toDouble()));
+        
+        maxEarnings = maxEarnings < earnings ? earnings : maxEarnings;
+        maxOrders = maxOrders < orders ? orders.toDouble() : maxOrders;
+        
+        index++;
+      }
 
       setState(() {
-        earnings = earningsResponse.fold<double>(
-            0, (sum, item) => sum + (item['booking_totalprice'] ?? 0));
+        earningsSpots = earningPoints;
+        ordersSpots = orderPoints;
+        maxY = maxEarnings > maxOrders ? maxEarnings : maxOrders;
+        isLoading = false;
       });
     } catch (error) {
-      setState(() => earnings = 0.0);
+      print('Error fetching monthly data: $error');
+      setState(() => isLoading = false);
     }
   }
 
@@ -147,6 +200,151 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  String getMonthName(double value) {
+    final now = DateTime.now();
+    final month = DateTime(now.year, now.month - 5 + value.toInt(), 1);
+    return DateFormat('MMM').format(month);
+  }
+
+  Widget buildGraph() {
+    return Container(
+      height: 300,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Monthly Overview",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF263238),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(show: false),
+                titlesData: FlTitlesData(
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 40,
+                      getTitlesWidget: (value, meta) {
+                        return Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(
+                            color: Color(0xFF263238),
+                            fontSize: 12,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            getMonthName(value),
+                            style: const TextStyle(
+                              color: Color(0xFF263238),
+                              fontSize: 12,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  rightTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                lineBarsData: [
+                  // Earnings Line
+                  LineChartBarData(
+                    spots: earningsSpots,
+                    isCurved: true,
+                    color: Colors.blue,
+                    barWidth: 3,
+                    dotData: FlDotData(show: true),
+                  ),
+                  // Orders Line
+                  LineChartBarData(
+                    spots: ordersSpots,
+                    isCurved: true,
+                    color: Colors.green,
+                    barWidth: 3,
+                    dotData: FlDotData(show: true),
+                  ),
+                ],
+                minX: 0,
+                maxX: 5,
+                minY: 0,
+                maxY: maxY + (maxY * 0.1), // Add 10% padding to top
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Legend
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.blue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Earnings'),
+                ],
+              ),
+              const SizedBox(width: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Text('Orders'),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -181,7 +379,7 @@ class _DashboardState extends State<Dashboard> {
 
           const SizedBox(height: 30),
 
-          // Statistics section in cards
+          // Three cards in a row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -189,7 +387,7 @@ class _DashboardState extends State<Dashboard> {
                 child: buildCard(
                   "Total Orders",
                   Icons.shopping_cart,
-                  Color(0xFF1E88E5), // Light Blue
+                  Color(0xFF1E88E5),
                   totalOrders?.toString() ?? '0',
                 ),
               ),
@@ -198,40 +396,32 @@ class _DashboardState extends State<Dashboard> {
                 child: buildCard(
                   "Pending Orders",
                   Icons.pending_actions,
-                  Color(0xFFFFC107), // Amber
+                  Color(0xFFFFC107),
                   pendingOrders?.toString() ?? '0',
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 30),
-
-          // More detailed info in another row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: buildCard(
-                  "Completed Orders",
-                  Icons.check_circle,
-                  Color(0xFF43A047), // Green
-                  completedOrders?.toString() ?? '0',
                 ),
               ),
               const SizedBox(width: 15),
               Expanded(
                 child: buildCard(
-                  "Earnings",
-                  Icons.attach_money,
-                  Color(0xFF9C27B0), // Purple
-                  earnings?.toStringAsFixed(2) ?? '0.00',
+                  "Completed Orders",
+                  Icons.check_circle,
+                  Color(0xFF43A047),
+                  completedOrders?.toString() ?? '0',
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 30),
+          // Graph Section
+          if (isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else
+            buildGraph(),
         ],
       ),
     );

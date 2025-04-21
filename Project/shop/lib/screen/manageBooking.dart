@@ -24,6 +24,7 @@ class _ManageBookingsPageState extends State<ManageBookingsPage> {
           .from('tbl_booking')
           .select('*, tbl_cart!inner(*, tbl_item!inner(*))')
           .eq('tbl_cart.tbl_item.shop_id', shopId)
+          .lt('tbl_cart.cart_status', 3)
           .order('booking_date', ascending: false)
           .then((value) {
         print("Response: $value");
@@ -47,7 +48,35 @@ class _ManageBookingsPageState extends State<ManageBookingsPage> {
         } else if (snapshot.hasError) {
           return const Center(child: Text("Failed to load bookings."));
         } else if (snapshot.data == null || snapshot.data!.isEmpty) {
-          return const Center(child: Text("No bookings available"));
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inventory,
+                  size: 64,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  "No active bookings available",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  "Orders that are packed, picked up,\ndelivered, or returned will not appear here",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         final bookings = snapshot.data!;
@@ -153,7 +182,7 @@ class _ManageBookingsPageState extends State<ManageBookingsPage> {
                                       : cartItem['cart_status'] == 2
                                           ? 'Pending'
                                           : cartItem['cart_status'] == 3
-                                              ? 'Item Returned'
+                                              ? 'packed'
                                               : 'Unknown Status';
 
                                   return Padding(

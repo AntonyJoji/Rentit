@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shop/screen/login.dart';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart'; // Added for kIsWeb
+import 'package:flutter/foundation.dart';
+//import 'package:shop/screen/shop_login.dart';
 
 class ShopRegistration extends StatefulWidget {
   const ShopRegistration({super.key});
@@ -17,23 +19,19 @@ class _ShopRegistrationState extends State<ShopRegistration> {
   final TextEditingController _shopEmailController = TextEditingController();
   final TextEditingController _shopAddressController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool isLoading = false;
 
   String? selectedDist;
   String? selectedPlace;
   List<Map<String, dynamic>> _distList = [];
   List<Map<String, dynamic>> _placeList = [];
-  PlatformFile? _shopLogo;
   PlatformFile? _shopProof;
 
-  Future<void> _pickImage(bool isLogo) async {
+  Future<void> _pickProof() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null) {
       setState(() {
-        if (isLogo) {
-          _shopLogo = result.files.first;
-        } else {
-          _shopProof = result.files.first;
-        }
+        _shopProof = result.files.first;
       });
     }
   }
@@ -61,6 +59,22 @@ class _ShopRegistrationState extends State<ShopRegistration> {
   }
 
   Future<void> register() async {
+    if (_shopNameController.text.isEmpty ||
+        _shopContactController.text.isEmpty ||
+        _shopEmailController.text.isEmpty ||
+        _shopAddressController.text.isEmpty ||
+        _passwordController.text.isEmpty ||
+        selectedDist == null ||
+        selectedPlace == null ||
+        _shopProof == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
     try {
       final auth = await Supabase.instance.client.auth.signUp(
         password: _passwordController.text,
@@ -69,14 +83,43 @@ class _ShopRegistrationState extends State<ShopRegistration> {
       final uid = auth.user?.id;
       if (uid != null && uid.isNotEmpty) {
         await storeData(uid);
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registration successful!')),
+        );
+        // Navigate to shop login page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ShopLogin()),
+        );
       }
     } catch (e) {
-      print("Error in authentication: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error in registration: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> storeData(String uid) async {
     try {
+      String? proofUrl;
+
+      if (_shopProof != null) {
+        final path = 'proofs/$uid-${_shopProof!.name}';
+        final bytes = _shopProof!.bytes ?? await File(_shopProof!.path!).readAsBytes();
+
+        await Supabase.instance.client.storage.from('shop').uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+        );
+
+        proofUrl = Supabase.instance.client.storage.from('shop').getPublicUrl(path);
+      }
+
+      // Insert shop data with shop_vstatus
       await Supabase.instance.client.from('tbl_shop').insert({
         'shop_id': uid,
         'shop_name': _shopNameController.text,
@@ -85,9 +128,12 @@ class _ShopRegistrationState extends State<ShopRegistration> {
         'shop_email': _shopEmailController.text,
         'shop_password': _passwordController.text,
         'place_id': selectedPlace,
+        'shop_proof': proofUrl,
+        'shop_vstatus': 0, // Set shop_vstatus to 0
       });
     } catch (e) {
-      print("Error inserting data: $e");
+      print("Error inserting data or uploading proof: $e");
+      rethrow;
     }
   }
 
@@ -100,129 +146,258 @@ class _ShopRegistrationState extends State<ShopRegistration> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Shop Registration')),
-      body: Center(
-        child: Container(
-          width: 400, // Adjust width to make it compact
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text(
+          'Shop Registration',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
           ),
-          child: SingleChildScrollView(
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: 500, // Fixed width for the form
+            padding: const EdgeInsets.all(24.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  controller: _shopNameController,
-                  decoration: InputDecoration(labelText: 'Shop Name', border: OutlineInputBorder()),
+                const Text(
+                  'Create Your Shop Account',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                SizedBox(height: 12),
-                TextFormField(
+                const SizedBox(height: 8),
+                const Text(
+                  'Fill in your shop details to get started',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                _buildFormField(
+                  controller: _shopNameController,
+                  label: 'Shop Name',
+                  icon: Icons.store,
+                ),
+                const SizedBox(height: 16),
+                _buildFormField(
                   controller: _shopContactController,
-                  decoration: InputDecoration(labelText: 'Shop Contact', border: OutlineInputBorder()),
+                  label: 'Contact Number',
+                  icon: Icons.phone,
                   keyboardType: TextInputType.phone,
                 ),
-                SizedBox(height: 12),
-                TextFormField(
+                const SizedBox(height: 16),
+                _buildFormField(
                   controller: _shopEmailController,
-                  decoration: InputDecoration(labelText: 'Shop Email', border: OutlineInputBorder()),
+                  label: 'Email Address',
+                  icon: Icons.email,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                SizedBox(height: 12),
-                TextFormField(
+                const SizedBox(height: 16),
+                _buildFormField(
                   controller: _shopAddressController,
-                  decoration: InputDecoration(labelText: 'Shop Address', border: OutlineInputBorder()),
+                  label: 'Shop Address',
+                  icon: Icons.location_on,
+                  maxLines: 2,
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
-                      child: DropdownButtonFormField<String>(
+                      child: _buildDropdown(
                         value: selectedDist,
-                        hint: Text("Select District"),
-                        onChanged: (newValue) {
-                          setState(() {
-                            selectedDist = newValue;
-                            fetchPlace(newValue!);
-                          });
-                        },
+                        hint: "Select District",
                         items: _distList.map((district) {
                           return DropdownMenuItem<String>(
                             value: district['district_id'].toString(),
                             child: Text(district['district_name']),
                           );
                         }).toList(),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedPlace,
-                        hint: Text("Select Place"),
                         onChanged: (newValue) {
                           setState(() {
-                            selectedPlace = newValue;
+                            selectedDist = newValue;
+                            fetchPlace(newValue!);
                           });
                         },
+                        icon: Icons.location_city,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildDropdown(
+                        value: selectedPlace,
+                        hint: "Select Place",
                         items: _placeList.map((place) {
                           return DropdownMenuItem<String>(
                             value: place['place_id'].toString(),
                             child: Text(place['place_name']),
                           );
                         }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            selectedPlace = newValue;
+                          });
+                        },
+                        icon: Icons.place,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12),
-                Text('Shop Logo'),
-                GestureDetector(
-                  onTap: () => _pickImage(true),
-                  child: Container(
-                    width: double.infinity,
-                    height: 80,
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
-                    child: _shopLogo == null
-                        ? Center(child: Icon(Icons.add_a_photo, size: 40))
-                        : kIsWeb
-                            ? Image.memory(_shopLogo!.bytes!, fit: BoxFit.cover)
-                            : Image.file(File(_shopLogo!.path!), fit: BoxFit.cover),
+                const SizedBox(height: 16),
+                const Text(
+                  'Shop Proof Document',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 12),
-                Text('Shop Proof'),
+                const SizedBox(height: 8),
                 GestureDetector(
-                  onTap: () => _pickImage(false),
+                  onTap: _pickProof,
                   child: Container(
                     width: double.infinity,
-                    height: 80,
-                    decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        width: 1.5,
+                      ),
+                    ),
                     child: _shopProof == null
-                        ? Center(child: Icon(Icons.add_a_photo, size: 40))
-                        : kIsWeb
-                            ? Image.memory(_shopProof!.bytes!, fit: BoxFit.cover)
-                            : Image.file(File(_shopProof!.path!), fit: BoxFit.cover),
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.cloud_upload,
+                                size: 40,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Upload Shop Proof',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: kIsWeb
+                                ? Image.memory(_shopProof!.bytes!, fit: BoxFit.cover)
+                                : Image.file(File(_shopProof!.path!), fit: BoxFit.cover),
+                          ),
                   ),
                 ),
-                SizedBox(height: 12),
-                TextFormField(
+                const SizedBox(height: 16),
+                _buildFormField(
                   controller: _passwordController,
-                  decoration: InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                  label: 'Password',
+                  icon: Icons.lock,
                   obscureText: true,
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
+                  height: 56,
                   child: ElevatedButton(
-                    onPressed: register,
-                    child: Text('Submit'),
+                    onPressed: isLoading ? null : register,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Create Account',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFormField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.grey[600]),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.blue, width: 2),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String? value,
+    required String hint,
+    required List<DropdownMenuItem<String>> items,
+    required Function(String?) onChanged,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        hint: Text(hint),
+        icon: const Icon(Icons.arrow_drop_down),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.grey[600]),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
+        onChanged: onChanged,
+        items: items,
       ),
     );
   }
