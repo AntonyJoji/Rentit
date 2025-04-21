@@ -1,0 +1,2 @@
+C:/Rentit/Project/user/android/app/.cxx/RelWithDebInfo/25k4t6bc/x86/CMakeFiles/edit_cache.dir
+C:/Rentit/Project/user/android/app/.cxx/RelWithDebInfo/25k4t6bc/x86/CMakeFiles/rebuild_cache.dir
