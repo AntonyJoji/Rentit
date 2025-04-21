@@ -245,33 +245,68 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(
-          "Your Cart",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart_outlined, size: 24),
+            SizedBox(width: 8),
+            Text(
+              "Your Cart",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade700,
         elevation: 0,
+        actions: [
+          SizedBox(width: 48), // Balance the centered title
+        ],
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue.shade700),
+              ),
+            )
           : cartItems.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 80,
-                        color: Colors.grey[400],
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 70,
+                          color: Colors.blue.shade700,
+                        ),
                       ),
-                      SizedBox(height: 16),
+                      SizedBox(height: 24),
                       Text(
                         "Your cart is empty",
                         style: TextStyle(
-                          fontSize: 20,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        "Add items to start shopping",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -289,12 +324,12 @@ class _CartPageState extends State<CartPage> {
                             margin: EdgeInsets.only(bottom: 16),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.05),
                                   blurRadius: 10,
-                                  offset: Offset(0, 2),
+                                  offset: Offset(0, 4),
                                 ),
                               ],
                             ),
@@ -302,22 +337,27 @@ class _CartPageState extends State<CartPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Product Image
-                                ClipRRect(
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: Radius.circular(12),
-                                    bottomLeft: Radius.circular(12),
-                                  ),
-                                  child: Image.network(
-                                    item['image'],
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
+                                Hero(
+                                  tag: 'cart_image_${item['item_id']}',
+                                  child: Container(
+                                    width: 120,
+                                    height: 120,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(16),
+                                        bottomLeft: Radius.circular(16),
+                                      ),
+                                      image: DecorationImage(
+                                        image: NetworkImage(item['image']),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
                                   ),
                                 ),
                                 // Product Details
                                 Expanded(
                                   child: Padding(
-                                    padding: EdgeInsets.all(12),
+                                    padding: EdgeInsets.all(16),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -326,75 +366,120 @@ class _CartPageState extends State<CartPage> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
+                                            color: Colors.grey.shade800,
                                           ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          "₹${item['price']} per day",
-                                          style: TextStyle(
-                                            color: Colors.green[700],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          "Available: ${itemStocks[item['item_id']] ?? 0} units",
-                                          style: TextStyle(
-                                            color: Colors.blue[700],
-                                            fontSize: 12,
-                                          ),
-                                        ),
                                         SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.shade50,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                "₹${item['price']} per day",
+                                                style: TextStyle(
+                                                  color: Colors.green.shade700,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(width: 8),
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.shade50,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                "${itemStocks[item['item_id']] ?? 0} available",
+                                                style: TextStyle(
+                                                  color: Colors.blue.shade700,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 12),
                                         Row(
                                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
                                             // Quantity Controls
                                             Container(
                                               decoration: BoxDecoration(
-                                                border: Border.all(color: Colors.grey[300]!),
+                                                color: Colors.grey.shade50,
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  IconButton(
-                                                    icon: Icon(Icons.remove, size: 18),
-                                                    onPressed: () {
+                                                  _buildQuantityButton(
+                                                    Icons.remove,
+                                                    () {
                                                       if (item['quantity'] > 1) {
-                                                        int newQty = item['quantity'] - 1;
-                                                        updateCartQuantity(item['cart_id'], item['item_id'], newQty);
+                                                        updateCartQuantity(
+                                                          item['cart_id'],
+                                                          item['item_id'],
+                                                          item['quantity'] - 1,
+                                                        );
                                                       }
                                                     },
-                                                    padding: EdgeInsets.zero,
-                                                    constraints: BoxConstraints(),
                                                   ),
                                                   Container(
-                                                    width: 30,
+                                                    width: 35,
                                                     alignment: Alignment.center,
                                                     child: Text(
                                                       item['quantity'].toString(),
-                                                      style: TextStyle(fontSize: 14),
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
                                                     ),
                                                   ),
-                                                  IconButton(
-                                                    icon: Icon(Icons.add, size: 18),
-                                                    onPressed: () {
-                                                      int newQty = item['quantity'] + 1;
-                                                      updateCartQuantity(item['cart_id'], item['item_id'], newQty);
+                                                  _buildQuantityButton(
+                                                    Icons.add,
+                                                    () {
+                                                      updateCartQuantity(
+                                                        item['cart_id'],
+                                                        item['item_id'],
+                                                        item['quantity'] + 1,
+                                                      );
                                                     },
-                                                    padding: EdgeInsets.zero,
-                                                    constraints: BoxConstraints(),
                                                   ),
                                                 ],
                                               ),
                                             ),
                                             // Delete Button
-                                            IconButton(
-                                              icon: Icon(Icons.delete_outline, color: Colors.red),
-                                              onPressed: () {
-                                                deleteCartItem(item['cart_id'], item['item_id'], item['quantity']);
-                                              },
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.red.shade50,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: IconButton(
+                                                icon: Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.red.shade400,
+                                                ),
+                                                onPressed: () {
+                                                  deleteCartItem(
+                                                    item['cart_id'],
+                                                    item['item_id'],
+                                                    item['quantity'],
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -410,79 +495,114 @@ class _CartPageState extends State<CartPage> {
                     ),
                     // Bottom Total and Checkout
                     Container(
-                      padding: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: Colors.white,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withOpacity(0.05),
                             blurRadius: 10,
                             offset: Offset(0, -5),
                           ),
                         ],
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Total Amount:",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                      child: SafeArea(
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Total Amount",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade800,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                "₹${getTotalPrice().toStringAsFixed(2)}",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green[700],
+                                Text(
+                                  "₹${getTotalPrice().toStringAsFixed(2)}",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade700,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  await updateStockForCheckout();
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => CheckoutPage(bid: bid!),
+                              ],
+                            ),
+                            SizedBox(height: 20),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 54,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  try {
+                                    await updateStockForCheckout();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => CheckoutPage(bid: bid!),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to update stock. Please try again.'),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue.shade700,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.shopping_bag_outlined),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      "Proceed to Checkout",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  );
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Failed to update stock. Please try again.')),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blueAccent,
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                "Proceed to Checkout",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                                  ],
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
+    );
+  }
+
+  Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      width: 32,
+      height: 32,
+      margin: EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 16, color: Colors.grey.shade700),
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        constraints: BoxConstraints(),
+      ),
     );
   }
 }

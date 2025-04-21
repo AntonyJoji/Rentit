@@ -243,13 +243,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(
-          "Checkout",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_bag_outlined, size: 24),
+            SizedBox(width: 8),
+            Text(
+              "Checkout",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
-        backgroundColor: Colors.blueAccent,
+        centerTitle: true,
+        backgroundColor: Colors.blue.shade700,
         elevation: 0,
+        actions: [SizedBox(width: 48)],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -259,79 +273,135 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Container(
               width: double.infinity,
               margin: EdgeInsets.all(16),
-              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
-                    offset: Offset(0, 2),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Delivery Information",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.local_shipping_outlined, 
+                            color: Colors.blue.shade700,
+                            size: 24,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          "Delivery Information",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  _buildInfoRow(Icons.person, "Name", userName),
-                  SizedBox(height: 8),
-                  _buildInfoRow(Icons.location_on, "Address", userAddress),
-                  SizedBox(height: 8),
-                  _buildInfoRow(Icons.phone, "Phone", userPhone),
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildInfoRow(Icons.person_outline, "Name", userName),
+                        SizedBox(height: 16),
+                        _buildInfoRow(Icons.location_on_outlined, "Address", userAddress),
+                        SizedBox(height: 16),
+                        _buildInfoRow(Icons.phone_outlined, "Phone", userPhone),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            // Date Selection Cards
+            // Date Selection Card
             Container(
               width: double.infinity,
               margin: EdgeInsets.symmetric(horizontal: 16),
-              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
-                    offset: Offset(0, 2),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Rental Period",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.calendar_today_outlined,
+                            color: Colors.green.shade700,
+                            size: 24,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          "Rental Period",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  _buildDateSelectionCard(
-                    "Start Date",
-                    startDate,
-                    () => _selectDate(context, true),
-                    "Pick Start Date",
-                  ),
-                  SizedBox(height: 16),
-                  _buildDateSelectionCard(
-                    "Pickup Date",
-                    pickupDate,
-                    startDate != null ? () => _selectDate(context, false) : null,
-                    "Pick Pickup Date",
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildDateSelectionCard(
+                          "Start Date",
+                          startDate,
+                          () => _selectDate(context, true),
+                          "Pick Start Date",
+                          Colors.blue.shade700,
+                        ),
+                        SizedBox(height: 16),
+                        _buildDateSelectionCard(
+                          "Pickup Date",
+                          pickupDate,
+                          startDate != null ? () => _selectDate(context, false) : null,
+                          "Pick Pickup Date",
+                          Colors.green.shade700,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -341,52 +411,90 @@ class _CheckoutPageState extends State<CheckoutPage> {
             Container(
               width: double.infinity,
               margin: EdgeInsets.all(16),
-              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
-                    offset: Offset(0, 2),
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Payment Summary",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueAccent,
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.payment_outlined,
+                            color: Colors.purple.shade700,
+                            size: 24,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+            Text(
+                          "Payment Summary",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.purple.shade700,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  SizedBox(height: 16),
-                  _buildPaymentRow("Total Amount", totalAmount),
-                  SizedBox(height: 8),
-                  _buildPaymentRow("Advance Payment (30%)", _advancePaymentAmount),
-                  SizedBox(height: 16),
-                  Container(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _confirmPayment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        _buildPaymentRow("Total Amount", totalAmount),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(color: Colors.grey.shade200),
                         ),
-                      ),
-                      child: Text(
-                        "Proceed to Payment",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                        _buildPaymentRow("Advance Payment (30%)", _advancePaymentAmount),
+                        SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+              onPressed: _confirmPayment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple.shade700,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.lock_outline),
+                                SizedBox(width: 8),
+                                Text(
+                                  "Proceed to Payment",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -402,7 +510,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.blueAccent, size: 20),
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.blue.shade700, size: 20),
+        ),
         SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -412,7 +527,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 label,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               SizedBox(height: 4),
@@ -420,7 +536,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 value,
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
                 ),
               ),
             ],
@@ -431,13 +548,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   Widget _buildDateSelectionCard(
-      String title, DateTime? date, VoidCallback? onPressed, String buttonText) {
+      String title, DateTime? date, VoidCallback? onPressed, String buttonText, Color color) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -449,7 +566,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 title,
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey[600],
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
               SizedBox(height: 4),
@@ -459,20 +577,24 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     : DateFormat('yyyy-MM-dd').format(date),
                 style: TextStyle(
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade800,
                 ),
               ),
             ],
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: onPressed,
+            icon: Icon(Icons.calendar_today_outlined, size: 18),
+            label: Text(buttonText),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
+              backgroundColor: color,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(12),
               ),
+              elevation: 0,
             ),
-            child: Text(buttonText),
           ),
         ],
       ),
@@ -487,18 +609,27 @@ class _CheckoutPageState extends State<CheckoutPage> {
           label,
           style: TextStyle(
             fontSize: 16,
-            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade700,
           ),
         ),
-        Text(
-          "₹${amount.toStringAsFixed(2)}",
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.blueAccent,
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.purple.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            "₹${amount.toStringAsFixed(2)}",
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.purple.shade700,
+            ),
           ),
         ),
       ],
     );
   }
 }
+

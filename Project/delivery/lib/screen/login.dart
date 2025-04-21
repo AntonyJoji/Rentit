@@ -1,5 +1,4 @@
 import 'package:delivery/screen/deliHomePage.dart';
-import 'package:delivery/screen/deliregistration.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -21,7 +20,7 @@ class _deliLoginPageState extends State<deliLoginPage> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill all fields')),
+        const SnackBar(content: Text('Please fill all fields')),
       );
       return;
     }
@@ -43,13 +42,13 @@ class _deliLoginPageState extends State<deliLoginPage> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Invalid email or password')),
+          const SnackBar(content: Text('Invalid email or password')),
         );
       }
     } catch (error) {
       print("Login error: $error");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred during login')),
+        const SnackBar(content: Text('An error occurred during login')),
       );
     }
   }
@@ -57,74 +56,71 @@ class _deliLoginPageState extends State<deliLoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "Login",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      backgroundColor: const Color(0xFFF9F9F9),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 60.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const CircleAvatar(
+              radius: 50,
+              backgroundImage: AssetImage('assets/images/delivery.png'), // Replace with your image
+              backgroundColor: Colors.transparent,
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              "Welcome Back!",
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Login to your delivery account",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 32),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: "Email",
+                prefixIcon: const Icon(Icons.email),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              SizedBox(height: 20),
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                labelText: "Password",
+                prefixIcon: const Icon(Icons.lock),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: login,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: const Color.fromARGB(255, 179, 174, 188),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: login,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                child: Text("Login", style: TextStyle(fontSize: 18)),
-              ),
-              SizedBox(height: 10),
-              TextButton(
-                onPressed: () {}, // You can add forgot password logic later
-                child: Text("Forgot Password?"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const deliregistration(),
-                    ),
-                  );
-                },
-                child: Text("Don't have an account? Register"),
-              ),
-            ],
-          ),
+              child: const Text("Login", style: TextStyle(fontSize: 18)),
+            ),
+          ],
         ),
       ),
     );

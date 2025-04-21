@@ -5,7 +5,7 @@ import 'package:user/screen/mybookings.dart';
 import 'package:user/screen/login.dart';
 import 'package:user/screen/productpage.dart';
 import 'package:user/screen/settingsPage.dart';
-import 'dart:math';
+//import 'dart:math';
 import 'dart:async';
 
 class UserHomePage extends StatefulWidget {
@@ -232,19 +232,41 @@ class _UserHomePageState extends State<UserHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'RentIt',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, letterSpacing: 1),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.handyman_outlined, size: 28),
+            SizedBox(width: 8),
+            Text(
+              'RentIt',
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+                foreground: Paint()
+                  ..shader = LinearGradient(
+                    colors: [Colors.blue.shade400, Colors.blue.shade900],
+                  ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
-        elevation: 4,
+        backgroundColor: Colors.white,
+        elevation: 0,
         actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart_outlined),
-            onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => CartPage()));
-            },
+          Container(
+            margin: EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.shopping_cart_outlined, color: Colors.blue.shade700),
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => CartPage()));
+              },
+            ),
           ),
         ],
       ),
@@ -252,54 +274,99 @@ class _UserHomePageState extends State<UserHomePage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            UserAccountsDrawerHeader(
-              decoration: BoxDecoration(color: Colors.blueAccent),
-              accountName: Text(
-                userName,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+            DrawerHeader(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Colors.blue.shade400, Colors.blue.shade900],
                 ),
               ),
-              accountEmail: Text(
-                userEmail,
-                style: TextStyle(
-                  fontSize: 14,
-                ),
-              ),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.person,
-                  size: 40,
-                  color: Colors.blueAccent,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CircleAvatar(
+                    radius: 35,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      Icons.person,
+                      size: 40,
+                      color: Colors.blue.shade700,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    userName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    userEmail,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
             ListTile(
-              leading: Icon(Icons.home_outlined),
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.home_outlined, color: Colors.blue.shade700),
+              ),
               title: Text('Home'),
               onTap: () {
                 Navigator.pop(context);
               },
             ),
             ListTile(
-              leading: Icon(Icons.calendar_today_outlined),
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.calendar_today_outlined, color: Colors.blue.shade700),
+              ),
               title: Text('My Bookings'),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => Mybookings()));
               },
             ),
             ListTile(
-              leading: Icon(Icons.settings_outlined),
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.settings_outlined, color: Colors.blue.shade700),
+              ),
               title: Text('Settings'),
               onTap: () {
                 Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage()));
               },
             ),
+            Divider(),
             ListTile(
-              leading: Icon(Icons.logout),
-              title: Text('Logout'),
+              leading: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.logout, color: Colors.red.shade400),
+              ),
+              title: Text('Logout', style: TextStyle(color: Colors.red.shade400)),
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -320,39 +387,81 @@ class _UserHomePageState extends State<UserHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  'Available Tools',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    labelText: 'Search',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Find Your Tools',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search tools...',
+                          prefixIcon: Icon(Icons.search, color: Colors.blue.shade700),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
               if (randomItems.isNotEmpty) ...[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                  child: Text(
-                    'Featured Items',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.star_outline, color: Colors.blue.shade700),
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Featured Tools',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 SizedBox(
-                  height: 180,
+                  height: 200,
                   child: isLoading
                       ? Center(child: CircularProgressIndicator())
                       : PageView.builder(
@@ -366,20 +475,32 @@ class _UserHomePageState extends State<UserHomePage> {
               ],
               
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Text(
-                  'All Items',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.grid_view, color: Colors.blue.shade700),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'All Tools',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
-              // Grid View in a container with fixed height
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.all(16),
                 child: isLoading
                     ? Center(child: CircularProgressIndicator())
                     : GridView.builder(
@@ -387,20 +508,33 @@ class _UserHomePageState extends State<UserHomePage> {
                         physics: NeverScrollableScrollPhysics(),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          crossAxisSpacing: 14,
-                          mainAxisSpacing: 14,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
                           childAspectRatio: 0.65,
                         ),
                         itemCount: filteredItems.length,
                         itemBuilder: (context, index) {
                           final item = filteredItems[index];
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Card(
-                              elevation: 3,
-                              margin: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ProductPage(itemId: item['item_id']),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 5),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,8 +542,10 @@ class _UserHomePageState extends State<UserHomePage> {
                                   Expanded(
                                     flex: 3,
                                     child: Container(
-                                      width: double.infinity,
                                       decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(16),
+                                        ),
                                         image: DecorationImage(
                                           image: NetworkImage(item['item_photo']),
                                           fit: BoxFit.cover,
@@ -420,77 +556,53 @@ class _UserHomePageState extends State<UserHomePage> {
                                   Expanded(
                                     flex: 2,
                                     child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
+                                      padding: const EdgeInsets.all(12),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            item['item_name'],
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                item['item_name'],
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                '₹${item['item_rentprice']}/day',
+                                                style: TextStyle(
+                                                  color: Colors.green.shade700,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          SizedBox(height: 2),
-                                          Text(
-                                            '₹${item['item_rentprice']}/day',
-                                            style: TextStyle(
-                                              color: Colors.green,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          if ((itemStocks[item['item_id']] ?? 0) <= 0) ...[
-                                            SizedBox(height: 2),
+                                          if ((itemStocks[item['item_id']] ?? 0) <= 0)
                                             Container(
                                               padding: EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
+                                                horizontal: 8,
+                                                vertical: 4,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: Colors.red[50],
+                                                color: Colors.red.shade50,
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
                                               child: Text(
                                                 'Out of Stock',
                                                 style: TextStyle(
-                                                  color: Colors.red[700],
+                                                  color: Colors.red.shade700,
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ),
-                                          ],
-                                          Spacer(),
-                                          SizedBox(
-                                            width: double.infinity,
-                                            height: 28,
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) =>
-                                                        ProductPage(itemId: item['item_id']),
-                                                  ),
-                                                );
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                padding: EdgeInsets.zero,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(8),
-                                                ),
-                                                backgroundColor: Colors.blueAccent,
-                                              ),
-                                              child: Text(
-                                                'Details',
-                                                style: TextStyle(fontSize: 12),
-                                              ),
-                                            ),
-                                          ),
                                         ],
                                       ),
                                     ),
@@ -502,7 +614,6 @@ class _UserHomePageState extends State<UserHomePage> {
                         },
                       ),
               ),
-              // Add some bottom padding
               SizedBox(height: 16),
             ],
           ),
