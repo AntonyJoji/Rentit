@@ -1,0 +1,1 @@
+C:\Rentit\Project\delivery\build\app\intermediates\cxx\RelWithDebInfo\19n24314\obj\arm64-v8a
