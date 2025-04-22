@@ -3,6 +3,7 @@ import 'package:delivery/screen/delihistory.dart';
 import 'package:delivery/screen/login.dart' show deliLoginPage;
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:delivery/main.dart';
 
 class DeliveryBoyHomePage extends StatefulWidget {
   final String boyId;
@@ -28,14 +29,14 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
   // Fetch the name of the delivery boy
   Future<void> fetchBoyName() async {
     try {
-      final response = await Supabase.instance.client
+      final response = await supabase
           .from('tbl_deliveryboy')
           .select('boy_name')
           .eq('boy_id', widget.boyId)
-          .maybeSingle();
+          .single();
 
       setState(() {
-        boyName = response?['boy_name'] ?? 'Name not found';
+        boyName = response['boy_name'] ?? 'Name not found';
         isNameLoading = false;
       });
     } catch (e) {
@@ -52,24 +53,22 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
     setState(() => isLoading = true);
 
     try {
-      final response = await Supabase.instance.client
+      final response = await supabase
           .from('tbl_cart')
           .select(
-              'cart_id, cart_qty, boy_id, booking_id, cart_status, tbl_booking(booking_id, user_id), tbl_item(item_name,item_rentprice)')
+              'cart_id, cart_qty, boy_id, booking_id, cart_status, tbl_booking(booking_id, user_id), tbl_item(item_name, item_rentprice, item_photo)')
           .inFilter('cart_status', [3, 5])
           .eq('boy_id', widget.boyId);
 
-      // Fetch user_name for each delivery using user_id
       for (var delivery in response) {
         final userId = delivery['tbl_booking']?['user_id'];
-        final userResponse = await Supabase.instance.client
+        final userResponse = await supabase
             .from('tbl_user')
-            .select('user_name')
+            .select('user_name, user_address')
             .eq('user_id', userId)
-            .maybeSingle();
+            .single();
 
-        delivery['user_name'] =
-            userResponse?['user_name'] ?? 'Unknown User';
+        delivery['user_details'] = userResponse;
       }
 
       setState(() {
@@ -83,16 +82,29 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
   }
 
   // Logout method
-  void logout() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => deliLoginPage()),
-    );
+  Future<void> _handleLogout(BuildContext context) async {
+    try {
+      await supabase.auth.signOut();
+      
+      if (context.mounted) {
+        // Navigate to login page and remove all previous routes
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const deliLoginPage()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
+    }
   }
 
   // Update delivery status (optional trigger)
   void updateDeliveryStatus(String bookingId) async {
-    await Supabase.instance.client
+    await supabase
         .from('tbl_booking')
         .update({'delivery_status': 'Picked Up'})
         .eq('booking_id', bookingId);
@@ -101,183 +113,225 @@ class _DeliveryBoyHomePageState extends State<DeliveryBoyHomePage> {
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: Text('Delivery Dashboard', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-      centerTitle: true,
-      actions: [
-        IconButton(
-          icon: Icon(Icons.refresh),
-          onPressed: fetchDeliveries,
-        ),
-      ],
-    ),
-    drawer: Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(color: Colors.blue),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.delivery_dining, size: 40, color: Colors.blue),
-                ),
-                SizedBox(height: 8),
-                Text('Delivery Agent', style: TextStyle(color: Colors.white, fontSize: 16)),
-                SizedBox(height: 4),
-                Flexible(
-                  child: Text(
-                    isNameLoading ? 'Loading name...' : (boyName.isNotEmpty ? boyName : 'No name found'),
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
+  Widget build(BuildContext context) {
+    final toDeliver = deliveries.where((d) => d['cart_status'] == 3).toList();
+    final toReturn = deliveries.where((d) => d['cart_status'] == 5).toList();
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Welcome,',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
-          ),
-          ListTile(
-            leading: Icon(Icons.history),
-            title: Text('Delivery History'),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => DeliveryHistoryPage()));
+            Text(
+              isNameLoading ? 'Loading...' : boyName,
+              style: const TextStyle(color: Colors.black, fontSize: 18),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history, color: Colors.black),
+            onPressed: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => const DeliveryHistoryPage()));
             },
           ),
-          ListTile(
-            leading: Icon(Icons.settings),
-            title: Text('Settings'),
-            onTap: () {},
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: fetchDeliveries,
           ),
-          ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('Logout'),
-            onTap: logout,
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.black),
+            onPressed: () => _handleLogout(context),
           ),
         ],
       ),
-    ),
-    body: Padding(
-      padding: EdgeInsets.all(16.0),
-      child: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : deliveries.isEmpty
-              ? Center(child: Text("No assigned deliveries"))
-              : SingleChildScrollView(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: fetchDeliveries,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Assigned Deliveries', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-
-                      // Displaying "Items to Deliver"
-                      Text('Items to Deliver', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: deliveries.where((delivery) => delivery['cart_status'] != 5).length,
-                        itemBuilder: (context, index) {
-                          final delivery = deliveries.where((delivery) => delivery['cart_status'] != 5).toList()[index];
-                          final itemName = delivery['tbl_item']['item_name'];
-                          final quantity = delivery['cart_qty'];
-                          final userName = delivery['user_name'];
-                          final cartStatus = delivery['cart_status'];
-
-                          return Card(
-                            elevation: 4,
-                            margin: EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.local_shipping,
-                                color: cartStatus == 5 ? Colors.orange : Colors.blue,
-                                size: 36,
-                              ),
-                              title: Text(
-                                'Item: $itemName',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text('Quantity: $quantity\nUser: $userName'),
-                              trailing: ElevatedButton(
-                                onPressed: () {
-                                  updateDeliveryStatus(delivery['booking_id']);
-                                },
-                                child: Text('details'),
-                              ),
-                              onTap: () {
-                                if (delivery != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DeliveryDetails(delivery: delivery),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
-
-                      SizedBox(height: 20),
-                      Text('Items to Return', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
-                        itemCount: deliveries.where((delivery) => delivery['cart_status'] == 5).length,
-                        itemBuilder: (context, index) {
-                          final delivery = deliveries.where((delivery) => delivery['cart_status'] == 5).toList()[index];
-                          final itemName = delivery['tbl_item']['item_name'];
-                          final quantity = delivery['cart_qty'];
-                          final userName = delivery['user_name'];
-                          final cartStatus = delivery['cart_status'];
-
-                          return Card(
-                            elevation: 4,
-                            margin: EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: ListTile(
-                              leading: Icon(
-                                Icons.local_shipping,
-                                color: cartStatus == 5 ? Colors.orange : Colors.blue,
-                                size: 36,
-                              ),
-                              title: Text(
-                                'Item: $itemName',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text('Quantity: $quantity\nUser: $userName'),
-                              trailing: ElevatedButton(
-                                onPressed: () {
-                                  updateDeliveryStatus(delivery['booking_id']);
-                                },
-                                child: Text('details'),
-                              ),
-                              onTap: () {
-                                if (delivery != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => DeliveryDetails(delivery: delivery),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          );
-                        },
-                      ),
+                      _buildSection('Deliveries Pending', toDeliver, Colors.blue),
+                      const SizedBox(height: 24),
+                      _buildSection('Returns Pending', toReturn, Colors.orange),
                     ],
                   ),
                 ),
-    ),
-  );
-}
+              ),
+            ),
+    );
+  }
+
+  Widget _buildSection(String title, List<dynamic> items, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 4,
+              height: 24,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${items.length}',
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (items.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                children: [
+                  Icon(
+                    title.contains('Deliveries') ? Icons.local_shipping : Icons.assignment_return,
+                    size: 48,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No ${title.toLowerCase()} at the moment',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final userName = item['user_details']?['user_name'] ?? 'Unknown User';
+              final userAddress = item['user_details']?['user_address'] ?? 'No address';
+              final itemName = item['tbl_item']?['item_name'] ?? 'Unknown Item';
+              final itemPhoto = item['tbl_item']?['item_photo'];
+
+              return Card(
+                elevation: 2,
+                margin: const EdgeInsets.only(bottom: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => DeliveryDetails(delivery: item),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: itemPhoto != null
+                                ? DecorationImage(
+                                    image: NetworkImage(itemPhoto),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            color: Colors.grey[200],
+                          ),
+                          child: itemPhoto == null
+                              ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                              : null,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                itemName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                userName,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                userAddress,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
 }

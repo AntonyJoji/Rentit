@@ -50,6 +50,159 @@ class _MybookingsState extends State<Mybookings> {
     );
   }
 
+  Future<void> _returnProduct(int bookingId, int itemId) async {
+    try {
+      // Show confirmation dialog
+      bool confirm = await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Confirm Return'),
+          content: Text('Are you sure you want to return this product?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+              ),
+              child: Text('Confirm'),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (!confirm) return;
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Get booking details to check dates and calculate potential refund
+      final bookingResponse = await Supabase.instance.client
+          .from('tbl_booking')
+          .select('*, tbl_cart(*, tbl_item(item_rentprice))')
+          .eq('booking_id', bookingId)
+          .single();
+      
+      // Calculate the refund amount if returned early
+      double updatedAmount = double.parse(bookingResponse['booking_totalprice'].toString());
+      print('Original booking total price: $updatedAmount');
+      DateTime now = DateTime.now();
+      DateTime scheduledReturnDate = DateTime.parse(bookingResponse['return_date'] ?? now.toIso8601String());
+      print('Current date: $now');
+      print('Scheduled return date: $scheduledReturnDate');
+      
+      // Check if the return is early
+      if (now.isBefore(scheduledReturnDate)) {
+        print('Early return detected - calculating refund');
+        // Find the specific cart item being returned
+        final cartItem = (bookingResponse['tbl_cart'] as List).firstWhere(
+          (item) => item['item_id'] == itemId,
+          orElse: () => null
+        );
+        
+        if (cartItem != null) {
+          // Calculate days remaining and potential refund
+          int daysRemaining = scheduledReturnDate.difference(now).inDays;
+          print('Days remaining in rental period: $daysRemaining');
+          
+          if (daysRemaining > 0) {
+            double dailyRate = double.parse(cartItem['tbl_item']['item_rentprice'].toString());
+            print('Daily rate for this item: $dailyRate');
+            
+            int itemQuantity = cartItem['cart_qty'] ?? 1;
+            print('Item quantity: $itemQuantity');
+            
+            double potentialRefund = dailyRate * daysRemaining * itemQuantity;
+            print('Calculated potential refund: $potentialRefund');
+            
+            // Update the total amount
+            updatedAmount = updatedAmount - potentialRefund;
+            if (updatedAmount < 0) updatedAmount = 0;
+            print('Updated booking total price after refund: $updatedAmount');
+          }
+        } else {
+          print('Could not find the specific cart item in booking response');
+        }
+      } else {
+        print('Return is not early - no refund needed');
+      }
+
+      // Update cart status to 5 (returned)
+      await Supabase.instance.client
+          .from('tbl_cart')
+          .update({'cart_status': 5})
+          .eq('booking_id', bookingId)
+          .eq('item_id', itemId);
+      print('Updated cart_status to 5 for item $itemId in booking $bookingId');
+
+      // Update booking status, return date, and total price
+      final nowString = DateTime.now().toIso8601String();
+      final updateResponse = await Supabase.instance.client
+          .from('tbl_booking')
+          .update({
+            'booking_status': 3, // Update booking status to returned
+            'return_date': nowString,
+            'booking_totalprice': updatedAmount.round() // Convert to integer by rounding
+          })
+          .eq('booking_id', bookingId);
+      print('Updated booking with return date, status 3, and total price ${updatedAmount.round()}');
+      print('Supabase update response: $updateResponse');
+
+      // Verify the update was successful by fetching the booking again
+      final verifyBooking = await Supabase.instance.client
+          .from('tbl_booking')
+          .select('booking_totalprice, booking_status, return_date')
+          .eq('booking_id', bookingId)
+          .single();
+      print('Verification - Updated booking data: $verifyBooking');
+
+      // Close loading dialog
+      Navigator.pop(context);
+
+      // Show success message with refund information if applicable
+      String message = 'Product returned successfully';
+      double originalAmount = double.parse(bookingResponse['booking_totalprice'].toString());
+      if (updatedAmount < originalAmount) {
+        double refundAmount = originalAmount - updatedAmount;
+        message += '. Refund amount: ₹${refundAmount.toStringAsFixed(2)}';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 5),
+        ),
+      );
+
+      // Refresh bookings list
+      fetchBookings();
+    } catch (e) {
+      // Close loading dialog if open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error returning product: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      print('Error returning product: $e');
+    }
+  }
+
   String _formatDate(String? date) {
     if (date == null) return 'N/A';
     try {
@@ -173,11 +326,32 @@ class _MybookingsState extends State<Mybookings> {
                                       ),
                                     ),
                                     ElevatedButton(
+                                      onPressed: () => _returnProduct(booking['booking_id'], cartItem['tbl_item']['item_id']),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        "Return",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton(
                                       onPressed: () => _submitComplaint(cartItem['tbl_item']['item_id']),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.redAccent,
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
+                                          horizontal: 12,
                                           vertical: 8,
                                         ),
                                         shape: RoundedRectangleBorder(

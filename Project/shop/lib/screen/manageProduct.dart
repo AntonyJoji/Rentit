@@ -36,38 +36,40 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
   }
 
   Future<void> _deleteProduct(int productId) async {
-  try {
-    final supabase = Supabase.instance.client;
+    try {
+      final supabase = Supabase.instance.client;
 
-    // First, delete related entries in the tbl_cart table that reference the product
-    await supabase.from('tbl_cart').delete().eq('item_id', productId);
+      // First, delete related entries in the tbl_complaint table that reference the product
+      await supabase.from('tbl_complaint').delete().eq('item_id', productId);
+      
+      // Delete related entries in the tbl_cart table that reference the product
+      await supabase.from('tbl_cart').delete().eq('item_id', productId);
 
-    // Optionally, you can also delete related stock entries
-    await supabase.from('tbl_stock').delete().eq('item_id', productId);
+      // Delete related stock entries
+      await supabase.from('tbl_stock').delete().eq('item_id', productId);
 
-    // Now delete the product itself
-    await supabase.from('tbl_item').delete().eq('item_id', productId);
+      // Now delete the product itself
+      await supabase.from('tbl_item').delete().eq('item_id', productId);
 
-    // Refresh the product list
-    _fetchProducts();
+      // Refresh the product list
+      _fetchProducts();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Product deleted successfully!"),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } catch (e) {
-    print("Error deleting product: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Error deleting product: $e"),
-        backgroundColor: Colors.red,
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Product deleted successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print("Error deleting product: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting product: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -129,7 +131,7 @@ class _ManageProductsPageState extends State<ManageProductsPage> {
                                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                         ),
                                         Text(
-                                          "Rent Price: \$${product['item_rentprice'] ?? '0.00'}",
+                                          "Rent Price: ₹${product['item_rentprice'] ?? '0.00'}",
                                           style: const TextStyle(color: Colors.green, fontSize: 14),
                                         ),
                                         Row(
