@@ -11,48 +11,83 @@ class DeliveryHistoryPage extends StatefulWidget {
 class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
   bool isLoading = true;
   List<dynamic> deliveryHistory = [];
+  String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    fetchDeliveryHistory();
+    _loadDeliveryHistory();
   }
 
-  Future<void> fetchDeliveryHistory() async {
+  Future<void> _loadDeliveryHistory() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
     try {
-      final currentUser = supabase.auth.currentUser;
-      if (currentUser == null) {
-        print('No user logged in');
+      // Get current user session
+      final session = supabase.auth.currentSession;
+      if (session == null) {
         setState(() {
+          errorMessage = 'You must be logged in to view history';
           isLoading = false;
-          deliveryHistory = [];
         });
         return;
       }
 
-      print("boy_id: ${currentUser.id}");
-      
+      // Get boy_id from the database using email
+      final user = session.user;
+      if (user.email == null) {
+        setState(() {
+          errorMessage = 'Unable to identify user';
+          isLoading = false;
+        });
+        return;
+      }
+
+      final deliveryBoy = await supabase
+          .from('tbl_deliveryboy')
+          .select('boy_id')
+          .eq('boy_email', user.email!)
+          .maybeSingle();
+
+      if (deliveryBoy == null || deliveryBoy['boy_id'] == null) {
+        setState(() {
+          errorMessage = 'Delivery boy profile not found';
+          isLoading = false;
+        });
+        return;
+      }
+
+      final boyId = deliveryBoy['boy_id'];
+      print('Fetching history for boyId: $boyId');
+
+      // Get history with status 5 or 7
       final response = await supabase
           .from('tbl_cart')
           .select('*, tbl_item!inner(item_name, item_photo), tbl_booking!inner(start_date, return_date)')
-          .or('cart_status.eq.5,cart_status.eq.6')
-          .eq('boy_id', currentUser.id)
-          .order('cart_id', ascending: false)
-          .limit(100);
+          .or('cart_status.eq.5,cart_status.eq.7')
+          .eq('boy_id', boyId)
+          .order('cart_id', ascending: false);
 
-      print("response: $response");
+      print('History response: ${response.length} items');
+
+      if (response.isEmpty) {
+        print('No history found for this delivery boy');
+      } else {
+        print('First item: ${response.first}');
+      }
 
       setState(() {
         deliveryHistory = response;
         isLoading = false;
       });
-    } catch (e, stackTrace) {
-      print('Error fetching delivery history:');
-      print('Error: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
+      print('Error fetching delivery history: $e');
       setState(() {
+        errorMessage = 'Error loading history: $e';
         isLoading = false;
-        deliveryHistory = [];
       });
     }
   }
@@ -61,7 +96,7 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
     switch (status) {
       case 5:
         return 'Delivered';
-      case 6:
+      case 7:
         return 'Returned';
       default:
         return 'Unknown';
@@ -74,32 +109,58 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
       appBar: AppBar(
         title: const Text('Delivery History'),
         centerTitle: true,
-        backgroundColor: Colors.teal,
-        elevation: 2,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                isLoading = true;
-              });
-              fetchDeliveryHistory();
-            },
+            onPressed: _loadDeliveryHistory,
           ),
         ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red[300],
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _loadDeliveryHistory,
+                        child: const Text('Try Again'),
+                      ),
+                    ],
+                  ),
+                )
               : deliveryHistory.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.history, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
+                          Icon(
+                            Icons.history,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
                             'No delivery history found',
                             style: TextStyle(fontSize: 16),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton(
+                            onPressed: _loadDeliveryHistory,
+                            child: const Text('Refresh'),
                           ),
                         ],
                       ),
@@ -113,33 +174,75 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage> {
                         final itemName = itemDetails['item_name'] ?? 'Unknown Item';
                         final itemImageUrl = itemDetails['item_photo'] ?? '';
                         final cartStatus = item['cart_status'];
+                        
+                        // Format dates
                         final startDate = bookingDetails['start_date'] ?? 'N/A';
                         final returnDate = bookingDetails['return_date'] ?? 'N/A';
+                        
+                        String formattedStartDate = startDate;
+                        String formattedReturnDate = returnDate;
+                        try {
+                          if (startDate != 'N/A') {
+                            final DateTime parsedStartDate = DateTime.parse(startDate);
+                            formattedStartDate = '${parsedStartDate.day}/${parsedStartDate.month}/${parsedStartDate.year}';
+                          }
+                          if (returnDate != 'N/A') {
+                            final DateTime parsedReturnDate = DateTime.parse(returnDate);
+                            formattedReturnDate = '${parsedReturnDate.day}/${parsedReturnDate.month}/${parsedReturnDate.year}';
+                          }
+                        } catch (e) {
+                          print('Error formatting dates: $e');
+                        }
 
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                           child: ListTile(
-                            leading: itemImageUrl.isNotEmpty
-                                ? Image.network(
-                                    itemImageUrl,
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                                  )
-                                : const Icon(Icons.image, size: 50, color: Colors.grey),
-                            title: Text(itemName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            leading: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                image: itemImageUrl.isNotEmpty
+                                    ? DecorationImage(
+                                        image: NetworkImage(itemImageUrl),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                                color: Colors.grey[200],
+                              ),
+                              child: itemImageUrl.isEmpty
+                                  ? const Icon(Icons.image_not_supported, color: Colors.grey)
+                                  : null,
+                            ),
+                            title: Text(
+                              itemName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Status: ${getCartStatusLabel(cartStatus)}',
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: cartStatus == 5 ? Colors.green[100] : Colors.orange[100],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    getCartStatusLabel(cartStatus),
                                     style: TextStyle(
-                                      fontSize: 14,
-                                      color: cartStatus == 5 ? Colors.green : Colors.orange,
-                                    )),
-                                Text('Start Date: $startDate'),
-                                Text('Return Date: $returnDate'),
+                                      color: cartStatus == 5 ? Colors.green[800] : Colors.orange[800],
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text('Start: $formattedStartDate'),
+                                Text('Return: $formattedReturnDate'),
                               ],
                             ),
                             isThreeLine: true,
