@@ -342,7 +342,7 @@ class _MybookingsState extends State<Mybookings> {
 
   // Helper method to get image URLs from the shop bucket
   String getImageUrl(String path) {
-    if (path == null || path.isEmpty) return '';
+    if (path.isEmpty) return '';
     
     final storageUrl = Supabase.instance.client.storage.from('shop').getPublicUrl(path);
     print('Generated image URL from shop bucket: $storageUrl for path: $path');

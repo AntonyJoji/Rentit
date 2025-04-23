@@ -52,11 +52,58 @@ class _ShopLoginState extends State<ShopLogin> {
           .single();
           
       if(response.isNotEmpty){
-        if (mounted) {
-          Navigator.pushReplacement(
-            context, 
-            MaterialPageRoute(builder: (context) => const Shophome())
-          );
+        // Check shop verification status
+        final dynamic shopStatus = response['shop_vstatus'] ?? '0';
+        
+        // Handle different shop statuses
+        if (shopStatus == '1') {
+          // Status 1: Approved shop - proceed to dashboard
+          if (mounted) {
+            Navigator.pushReplacement(
+              context, 
+              MaterialPageRoute(builder: (context) => const Shophome())
+            );
+          }
+        } else if (shopStatus == '0') {
+          // Status 0: Pending approval
+          if (mounted) {
+            // Sign out as we don't want pending shops to be logged in
+            await supabase.auth.signOut();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your shop is awaiting admin approval. Please check back later.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+        } else if (shopStatus == '2') {
+          // Status 2: Rejected
+          if (mounted) {
+            // Sign out as rejected shops shouldn't be logged in
+            await supabase.auth.signOut();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Your shop registration has been rejected. Please contact support for more information.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          }
+        } else {
+          // Unknown status
+          if (mounted) {
+            await supabase.auth.signOut();
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Unknown shop status: $shopStatus. Please contact support.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       } else {
         if (mounted) {
@@ -73,8 +120,8 @@ class _ShopLoginState extends State<ShopLogin> {
       print("Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login failed. Please check your credentials.'),
+          SnackBar(
+            content: Text('Login failed: ${e.toString().split(']').last}'),
             backgroundColor: Colors.red,
           ),
         );

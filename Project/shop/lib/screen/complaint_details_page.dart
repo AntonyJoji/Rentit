@@ -42,7 +42,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
     setState(() => _isLoading = true); // Disable button while submitting
 
     try {
-      final response = await Supabase.instance.client
+      await Supabase.instance.client
           .from('tbl_complaint')
           .update({
             'complaint_replay': replyText,
@@ -50,11 +50,7 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
           })
           .eq('complaint_id', widget.complaintId);
 
-      if (response.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error: No matching record found.')),
-        );
-      } else {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Reply sent successfully')),
         );
@@ -65,11 +61,15 @@ class _ComplaintDetailsPageState extends State<ComplaintDetailsPage> {
       }
     } catch (error) {
       print('❌ Error sending reply: $error');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error sending reply: $error')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending reply: $error')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false); // Re-enable button after completion
+      if (mounted) {
+        setState(() => _isLoading = false); // Re-enable button after completion
+      }
     }
   }
 
