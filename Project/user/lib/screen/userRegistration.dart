@@ -61,22 +61,165 @@ class _userregistrationState extends State<Userregistration> {
   }
 
   Future<void> register() async {
+    // Validate input fields
+    if (_userNameController.text.trim().isEmpty ||
+        _userContactController.text.trim().isEmpty ||
+        _userEmailController.text.trim().isEmpty ||
+        _userAddressController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty ||
+        selectedPlace == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please fill in all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate email format
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_userEmailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter a valid email address'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate password length
+    if (_passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Password must be at least 6 characters long'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Check if photos are selected
+    if (_userphoto == null || _userid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please upload both your photo and ID document'),
+          backgroundColor: Colors.amber,
+        ),
+      );
+      return;
+    }
+
     try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
       final auth = await Supabase.instance.client.auth.signUp(
         password: _passwordController.text,
         email: _userEmailController.text,
       );
+      
+      // Close loading dialog
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
       final uid = auth.user?.id;
       if (uid != null && uid.isNotEmpty) {
         await storeData(uid);
+        
+        // Navigate to login page after successful registration
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UserLoginPage(),
+          ),
+        );
+      } else {
+        throw Exception("Failed to create user account");
       }
     } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
       print("Error in authentication: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration failed: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   Future<void> storeData(String uid) async {
     try {
+      // Create loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        },
+      );
+
+      String? userPhotoPath;
+      String? userIdPath;
+
+      // Upload user photo if selected
+      if (_userphoto != null) {
+        final photoFile = File(_userphoto!.path!);
+        final photoFileName = '${uid}_userphoto_${DateTime.now().millisecondsSinceEpoch}.${_userphoto!.extension}';
+        
+        try {
+          await Supabase.instance.client.storage
+              .from('shop')
+              .upload(
+                'user_photos/$photoFileName',
+                photoFile,
+                fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+              );
+          userPhotoPath = 'user_photos/$photoFileName';
+          print('User photo uploaded successfully to: $userPhotoPath');
+        } catch (e) {
+          print('Error uploading user photo: $e');
+        }
+      }
+
+      // Upload user ID if selected
+      if (_userid != null) {
+        final idFile = File(_userid!.path!);
+        final idFileName = '${uid}_userid_${DateTime.now().millisecondsSinceEpoch}.${_userid!.extension}';
+        
+        try {
+          await Supabase.instance.client.storage
+              .from('shop')
+              .upload(
+                'user_ids/$idFileName',
+                idFile,
+                fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+              );
+          userIdPath = 'user_ids/$idFileName';
+          print('User ID document uploaded successfully to: $userIdPath');
+        } catch (e) {
+          print('Error uploading user ID: $e');
+        }
+      }
+
+      // Insert user data including photo and ID paths
       await Supabase.instance.client.from('tbl_user').insert({
         'user_id': uid,
         'user_name': _userNameController.text,
@@ -85,9 +228,34 @@ class _userregistrationState extends State<Userregistration> {
         'user_email': _userEmailController.text,
         'user_password': _passwordController.text,
         'place_id': selectedPlace,
+        'user_photo': userPhotoPath,
+        'user_proof': userIdPath,
       });
+
+      // Close loading dialog
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration successful!'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
+      // Close loading dialog if still open
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      
       print("Error inserting data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Registration failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -209,12 +377,6 @@ class _userregistrationState extends State<Userregistration> {
                   child: ElevatedButton(
                     onPressed: () {
                       register();
-                       Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => UserLoginPage (), // Fixed constructor reference
-                              ),
-                            );
                     },
                     child: Text('Submit'),
                   ),

@@ -25,6 +25,10 @@ class _MybookingsState extends State<Mybookings> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
+      // Update the bucket name for consistency
+      final supabaseBucket = 'shop';
+      print('Using Supabase storage bucket: $supabaseBucket');
+
       // Get complete booking data in a single query for debugging
       final rawBookings = await Supabase.instance.client
           .from('tbl_booking')
@@ -336,6 +340,15 @@ class _MybookingsState extends State<Mybookings> {
     }
   }
 
+  // Helper method to get image URLs from the shop bucket
+  String getImageUrl(String path) {
+    if (path == null || path.isEmpty) return '';
+    
+    final storageUrl = Supabase.instance.client.storage.from('shop').getPublicUrl(path);
+    print('Generated image URL from shop bucket: $storageUrl for path: $path');
+    return storageUrl;
+  }
+
   String _formatDate(String? date) {
     if (date == null) return 'N/A';
     try {
@@ -550,6 +563,30 @@ class _MybookingsState extends State<Mybookings> {
                                 var cartItem = booking['tbl_cart'][index];
                                 return Row(
                                   children: [
+                                    // Add item image display
+                                    if (cartItem['tbl_item'] != null && 
+                                       cartItem['tbl_item']['item_image'] != null &&
+                                       cartItem['tbl_item']['item_image'].toString().isNotEmpty)
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      margin: const EdgeInsets.only(right: 12),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey.shade200),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          getImageUrl(cartItem['tbl_item']['item_image']),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            print('Error loading image: $error');
+                                            return Icon(Icons.image_not_supported, color: Colors.grey);
+                                          },
+                                        ),
+                                      ),
+                                    ),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -564,6 +601,15 @@ class _MybookingsState extends State<Mybookings> {
                                           const SizedBox(height: 4),
                                           Text(
                                             "Quantity: ${cartItem['cart_qty']}",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          // Add price display
+                                          Text(
+                                            "Unit Price: ${getFormattedPrice(cartItem['tbl_item']['item_rentprice'])}",
                                             style: TextStyle(
                                               fontSize: 14,
                                               color: Colors.grey[600],
