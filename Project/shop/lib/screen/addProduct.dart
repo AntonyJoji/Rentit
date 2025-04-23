@@ -92,6 +92,18 @@ class _addProductState extends State<addProduct> {
  Future<void> _submitProduct() async {
   try {
     String? url = await photoUpload(); 
+    
+    // Get current shop ID from auth
+    final shopId = Supabase.instance.client.auth.currentUser?.id;
+    if (shopId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: Unable to get shop ID. Please login again."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     final response = await Supabase.instance.client.from('tbl_item').insert({
       'item_name': _nameController.text,
@@ -100,6 +112,7 @@ class _addProductState extends State<addProduct> {
       'item_rentprice': double.parse(_priceController.text),
       'item_detail': _detailsController.text,
       'item_photo': url,
+      'shop_id': shopId, // Add shop_id to associate product with current shop
     });
 
     print("Product added successfully: $response");
@@ -113,8 +126,22 @@ class _addProductState extends State<addProduct> {
       _selectedCategory = null;
       _selectedSubcategory = null;
     });
+    
+    // Show success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Product added successfully!"),
+        backgroundColor: Colors.green,
+      ),
+    );
   } catch (e) {
     print("Error inserting product: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error adding product: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 }
 

@@ -87,11 +87,35 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 
   Future<void> fetchDeliveryBoys() async {
-    final response = await Supabase.instance.client.from('tbl_deliveryboy').select('*');
-    print("Fetched delivery boys: $response"); // Added to debug fetched delivery boys
-    setState(() {
-      deliveryBoys = List<Map<String, dynamic>>.from(response);
-    });
+    try {
+      // Get current shop ID
+      final shopId = Supabase.instance.client.auth.currentUser?.id;
+      
+      if (shopId == null) {
+        print("Error: No shop ID found. User may need to log in again.");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Session expired. Please log in again."))
+        );
+        return;
+      }
+      
+      // Only fetch delivery boys that belong to the current shop
+      final response = await Supabase.instance.client
+          .from('tbl_deliveryboy')
+          .select('*')
+          .eq('shop_id', shopId);
+          
+      print("Fetched ${response.length} delivery boys for shop $shopId");
+      
+      setState(() {
+        deliveryBoys = List<Map<String, dynamic>>.from(response);
+      });
+    } catch (e) {
+      print("Error fetching delivery boys: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error loading delivery boys: $e"))
+      );
+    }
   }
 
  Future<void> conformed(int cartId) async {

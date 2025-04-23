@@ -49,15 +49,26 @@ class _ShopRentedItemsPageState extends State<ShopRentedItemsPage> {
 
   Future<List<Map<String, dynamic>>> fetchRentedItems() async {
     try {
-      // Fetch cart items with status 6 directly, with all necessary joins
+      // Get the current shop ID
+      final shopId = Supabase.instance.client.auth.currentUser?.id;
+      
+      if (shopId == null) {
+        debugPrint('Error: No shop ID found, user may need to log in again');
+        throw Exception('Not logged in or session expired');
+      }
+      
+      debugPrint('Fetching rented items for shop: $shopId');
+      
+      // Fetch cart items with status 6 and belonging to current shop
       final response = await Supabase.instance.client
           .from('tbl_cart')
           .select('''
             cart_id, cart_qty, cart_status,
-            tbl_item!inner(item_id, item_name, item_photo, item_rentprice),
+            tbl_item!inner(item_id, item_name, item_photo, item_rentprice, shop_id),
             tbl_booking!inner(booking_id, start_date, return_date, booking_totalprice)
           ''')
-          .eq('cart_status', 6);
+          .eq('cart_status', 6)
+          .eq('tbl_item.shop_id', shopId);
       
       debugPrint('Cart items found: ${response.length}');
       
@@ -119,8 +130,11 @@ class _ShopRentedItemsPageState extends State<ShopRentedItemsPage> {
     final itemPhoto = item['tbl_item']['item_photo'];
     final startDate = item['tbl_booking']['start_date'];
     final returnDate = item['tbl_booking']['return_date'];
-    final totalPrice = item['tbl_booking']['booking_totalprice'];
+    final rentPrice = item['tbl_item']['item_rentprice'];
     final qty = item['cart_qty'];
+    
+    // Calculate the total based on the rental price and quantity
+    final double totalItemPrice = (rentPrice ?? 0.0) * (qty ?? 1);
     
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -212,7 +226,12 @@ class _ShopRentedItemsPageState extends State<ShopRentedItemsPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Total: ₹$totalPrice',
+                            'Price: ₹$rentPrice per item',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Total: ₹${totalItemPrice.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
