@@ -24,6 +24,19 @@ class _UserHomePageState extends State<UserHomePage> {
   bool isLoading = true;
   TextEditingController searchController = TextEditingController();
   
+  // Add filter state variables
+  String selectedCategory = 'All';
+  int selectedCategoryId = 0; // 0 means "All"
+  RangeValues priceRange = RangeValues(0, 10000);
+  bool showOnlyInStock = false;
+  List<String> categories = ['All'];
+  // Add subcategory variables
+  String selectedSubcategory = 'All';
+  int selectedSubcategoryId = 0; // 0 means "All"
+  List<String> subcategories = ['All'];
+  Map<int, List<Map<String, dynamic>>> categoryToSubcategories = {};
+  double maxPrice = 10000;
+  
   // Add controllers for auto-scrolling
   late PageController _pageController;
   Timer? _autoScrollTimer;
@@ -33,12 +46,17 @@ class _UserHomePageState extends State<UserHomePage> {
   String userEmail = 'Loading...';
   bool isUserDataLoading = true;
 
+  // Add variables for category data from tbl_catagory
+  List<Map<String, dynamic>> categoryData = [];
+  List<Map<String, dynamic>> subcategoryData = [];
+
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     fetchItems();
     fetchUserData();
+    fetchCategoriesAndSubcategories(); // Fetch both categories and subcategories
     searchController.addListener(_filterItems);
     // Start auto-scrolling when the page loads
     _startAutoScroll();
@@ -107,6 +125,15 @@ class _UserHomePageState extends State<UserHomePage> {
 
       List<Map<String, dynamic>> allItems = List<Map<String, dynamic>>.from(response);
       
+      // Determine max price
+      double highestPrice = 0;
+      
+      for (var item in allItems) {
+        if (item['item_rentprice'] != null && item['item_rentprice'] > highestPrice) {
+          highestPrice = item['item_rentprice'].toDouble();
+        }
+      }
+      
       // Take only 2 random items
       allItems.shuffle();
       List<Map<String, dynamic>> randomSelection = allItems.take(2).toList();
@@ -117,6 +144,8 @@ class _UserHomePageState extends State<UserHomePage> {
         randomItems = randomSelection;
         itemStocks = stocks;
         isLoading = false;
+        maxPrice = highestPrice.ceil().toDouble();
+        priceRange = RangeValues(0, maxPrice);
       });
     } catch (e) {
       print('Error fetching items: $e');
@@ -126,14 +155,335 @@ class _UserHomePageState extends State<UserHomePage> {
     }
   }
 
+  // Fetch categories and subcategories
+  Future<void> fetchCategoriesAndSubcategories() async {
+    try {
+      // Fetch categories
+      final categoryResponse = await supabase.from('tbl_category').select('category_id, category_name');
+      List<Map<String, dynamic>> cats = List<Map<String, dynamic>>.from(categoryResponse);
+      
+      // Fetch subcategories
+      final subcategoryResponse = await supabase.from('tbl_subcategory')
+          .select('subcategory_id, subcategory_name, category_id');
+      List<Map<String, dynamic>> subcats = List<Map<String, dynamic>>.from(subcategoryResponse);
+      
+      // Create a mapping of category_id to subcategories
+      Map<int, List<Map<String, dynamic>>> subsByCat = {};
+      
+      for (var subcat in subcats) {
+        int catId = subcat['category_id'];
+        if (!subsByCat.containsKey(catId)) {
+          subsByCat[catId] = [];
+        }
+        subsByCat[catId]?.add(subcat);
+      }
+      
+      setState(() {
+        categoryData = cats;
+        subcategoryData = subcats;
+        categoryToSubcategories = subsByCat;
+        
+        // Update category dropdown options
+        categories = ['All'];
+        for (var cat in cats) {
+          if (cat['category_name'] != null) {
+            categories.add(cat['category_name'].toString());
+          }
+        }
+        
+        // Initialize subcategories with "All"
+        subcategories = ['All'];
+      });
+    } catch (e) {
+      print('Error fetching categories and subcategories: $e');
+    }
+  }
+  
+  // Update subcategories when category changes
+  void _updateSubcategories(String category) {
+    setState(() {
+      selectedCategory = category;
+      selectedSubcategory = 'All';
+      selectedSubcategoryId = 0;
+      
+      if (category == 'All') {
+        subcategories = ['All'];
+        selectedCategoryId = 0;
+      } else {
+        // Find the category_id for the selected category
+        int? categoryId;
+        for (var cat in categoryData) {
+          if (cat['category_name'] == category) {
+            categoryId = cat['category_id'];
+            break;
+          }
+        }
+        
+        selectedCategoryId = categoryId ?? 0;
+        
+        if (categoryId != null && categoryToSubcategories.containsKey(categoryId)) {
+          subcategories = ['All'];
+          for (var subcat in categoryToSubcategories[categoryId]!) {
+            subcategories.add(subcat['subcategory_name'].toString());
+          }
+        } else {
+          subcategories = ['All'];
+        }
+      }
+    });
+    
+    _filterItems();
+  }
+
   void _filterItems() {
     setState(() {
       filteredItems = items.where((item) {
-        return item['item_name']
-            .toLowerCase()
-            .contains(searchController.text.toLowerCase());
+        // Filter by search text - check name, category and subcategory
+        String itemCategoryName = '';
+        String itemSubcategoryName = '';
+        
+        // Find category and subcategory names based on IDs in the item
+        if (item['category_id'] != null) {
+          for (var cat in categoryData) {
+            if (cat['category_id'] == item['category_id']) {
+              itemCategoryName = cat['category_name']?.toString() ?? '';
+              break;
+            }
+          }
+        }
+        
+        if (item['subcategory_id'] != null) {
+          for (var subcat in subcategoryData) {
+            if (subcat['subcategory_id'] == item['subcategory_id']) {
+              itemSubcategoryName = subcat['subcategory_name']?.toString() ?? '';
+              break;
+            }
+          }
+        }
+        
+        bool matchesSearch = item['item_name']
+                .toLowerCase()
+                .contains(searchController.text.toLowerCase()) ||
+            itemCategoryName.toLowerCase().contains(searchController.text.toLowerCase()) ||
+            itemSubcategoryName.toLowerCase().contains(searchController.text.toLowerCase());
+            
+        // Filter by category_id
+        bool matchesCategory = selectedCategoryId == 0 || 
+            item['category_id'] == selectedCategoryId;
+            
+        // Filter by subcategory_id
+        bool matchesSubcategory = selectedSubcategoryId == 0 || 
+            item['subcategory_id'] == selectedSubcategoryId;
+            
+        // Filter by price range
+        bool matchesPrice = (item['item_rentprice'] >= priceRange.start &&
+            item['item_rentprice'] <= priceRange.end);
+            
+        // Filter by stock availability
+        bool matchesStock = !showOnlyInStock || 
+            (itemStocks[item['item_id']] ?? 0) > 0;
+            
+        return matchesSearch && matchesCategory && matchesSubcategory && matchesPrice && matchesStock;
       }).toList();
     });
+  }
+
+  void _showFilterDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Filter Options'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Category', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedCategory,
+                        isExpanded: true,
+                        underline: SizedBox(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setDialogState(() {
+                              // Update subcategories when category changes
+                              selectedCategory = newValue;
+                              
+                              if (newValue == 'All') {
+                                subcategories = ['All'];
+                                selectedSubcategory = 'All';
+                                selectedCategoryId = 0;
+                                selectedSubcategoryId = 0;
+                              } else {
+                                // Find the category_id for the selected category
+                                int? categoryId;
+                                for (var cat in categoryData) {
+                                  if (cat['category_name'] == newValue) {
+                                    categoryId = cat['category_id'];
+                                    break;
+                                  }
+                                }
+                                
+                                selectedCategoryId = categoryId ?? 0;
+                                
+                                if (categoryId != null && categoryToSubcategories.containsKey(categoryId)) {
+                                  subcategories = ['All'];
+                                  for (var subcat in categoryToSubcategories[categoryId]!) {
+                                    subcategories.add(subcat['subcategory_name'].toString());
+                                  }
+                                } else {
+                                  subcategories = ['All'];
+                                }
+                                
+                                selectedSubcategory = 'All';
+                                selectedSubcategoryId = 0;
+                              }
+                            });
+                          }
+                        },
+                        items: categories.map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    
+                    Text('Subcategory', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedSubcategory,
+                        isExpanded: true,
+                        underline: SizedBox(),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setDialogState(() {
+                              selectedSubcategory = newValue;
+                              
+                              if (newValue == 'All') {
+                                selectedSubcategoryId = 0;
+                              } else {
+                                // Find the subcategory_id for the selected subcategory
+                                int? subcategoryId;
+                                if (selectedCategoryId != 0 && 
+                                    categoryToSubcategories.containsKey(selectedCategoryId)) {
+                                  for (var subcat in categoryToSubcategories[selectedCategoryId]!) {
+                                    if (subcat['subcategory_name'] == newValue) {
+                                      subcategoryId = subcat['subcategory_id'];
+                                      break;
+                                    }
+                                  }
+                                }
+                                
+                                selectedSubcategoryId = subcategoryId ?? 0;
+                              }
+                            });
+                          }
+                        },
+                        items: subcategories.map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    
+                    Text('Price Range (₹/day)', style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('₹${priceRange.start.round()}'),
+                        Text('₹${priceRange.end.round()}'),
+                      ],
+                    ),
+                    RangeSlider(
+                      values: priceRange,
+                      min: 0,
+                      max: maxPrice,
+                      divisions: 20,
+                      labels: RangeLabels(
+                        '₹${priceRange.start.round()}',
+                        '₹${priceRange.end.round()}',
+                      ),
+                      onChanged: (RangeValues values) {
+                        setDialogState(() {
+                          priceRange = values;
+                        });
+                      },
+                    ),
+                    SizedBox(height: 16),
+                    
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: showOnlyInStock,
+                          onChanged: (bool? value) {
+                            setDialogState(() {
+                              showOnlyInStock = value ?? false;
+                            });
+                          },
+                        ),
+                        Text('Show only in-stock items'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  child: Text('Reset'),
+                  onPressed: () {
+                    setDialogState(() {
+                      selectedCategory = 'All';
+                      selectedCategoryId = 0;
+                      selectedSubcategory = 'All';
+                      selectedSubcategoryId = 0;
+                      subcategories = ['All'];
+                      priceRange = RangeValues(0, maxPrice);
+                      showOnlyInStock = false;
+                    });
+                  },
+                ),
+                TextButton(
+                  child: Text('Cancel'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                ElevatedButton(
+                  child: Text('Apply'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _filterItems();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -421,14 +771,27 @@ class _UserHomePageState extends State<UserHomePage> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: Colors.grey.shade200),
                       ),
-                      child: TextField(
-                        controller: searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search tools...',
-                          prefixIcon: Icon(Icons.search, color: Colors.blue.shade700),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: searchController,
+                              decoration: InputDecoration(
+                                hintText: 'Search tools...',
+                                prefixIcon: Icon(Icons.search, color: Colors.blue.shade700),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              ),
+                            ),
+                          ),
+                          Container(
+                            margin: EdgeInsets.only(right: 8),
+                            child: IconButton(
+                              icon: Icon(Icons.filter_list, color: Colors.blue.shade700),
+                              onPressed: _showFilterDialog,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
