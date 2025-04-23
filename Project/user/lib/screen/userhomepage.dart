@@ -64,7 +64,7 @@ class _UserHomePageState extends State<UserHomePage> {
 
   void _startAutoScroll() {
     _autoScrollTimer?.cancel();
-    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       if (_pageController.hasClients) {
         if (_pageController.page == randomItems.length - 1) {
           _pageController.animateToPage(
@@ -134,9 +134,9 @@ class _UserHomePageState extends State<UserHomePage> {
         }
       }
       
-      // Take only 2 random items
+      // Take 4 random items instead of 2
       allItems.shuffle();
-      List<Map<String, dynamic>> randomSelection = allItems.take(2).toList();
+      List<Map<String, dynamic>> randomSelection = allItems.take(4).toList();
 
       setState(() {
         items = allItems;
@@ -294,191 +294,367 @@ class _UserHomePageState extends State<UserHomePage> {
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Filter Options'),
-              content: SingleChildScrollView(
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: EdgeInsets.all(20),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Category', style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButton<String>(
-                        value: selectedCategory,
-                        isExpanded: true,
-                        underline: SizedBox(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setDialogState(() {
-                              // Update subcategories when category changes
-                              selectedCategory = newValue;
-                              
-                              if (newValue == 'All') {
-                                subcategories = ['All'];
-                                selectedSubcategory = 'All';
-                                selectedCategoryId = 0;
-                                selectedSubcategoryId = 0;
-                              } else {
-                                // Find the category_id for the selected category
-                                int? categoryId;
-                                for (var cat in categoryData) {
-                                  if (cat['category_name'] == newValue) {
-                                    categoryId = cat['category_id'];
-                                    break;
-                                  }
-                                }
-                                
-                                selectedCategoryId = categoryId ?? 0;
-                                
-                                if (categoryId != null && categoryToSubcategories.containsKey(categoryId)) {
-                                  subcategories = ['All'];
-                                  for (var subcat in categoryToSubcategories[categoryId]!) {
-                                    subcategories.add(subcat['subcategory_name'].toString());
-                                  }
-                                } else {
-                                  subcategories = ['All'];
-                                }
-                                
-                                selectedSubcategory = 'All';
-                                selectedSubcategoryId = 0;
-                              }
-                            });
-                          }
-                        },
-                        items: categories.map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    
-                    Text('Subcategory', style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButton<String>(
-                        value: selectedSubcategory,
-                        isExpanded: true,
-                        underline: SizedBox(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setDialogState(() {
-                              selectedSubcategory = newValue;
-                              
-                              if (newValue == 'All') {
-                                selectedSubcategoryId = 0;
-                              } else {
-                                // Find the subcategory_id for the selected subcategory
-                                int? subcategoryId;
-                                if (selectedCategoryId != 0 && 
-                                    categoryToSubcategories.containsKey(selectedCategoryId)) {
-                                  for (var subcat in categoryToSubcategories[selectedCategoryId]!) {
-                                    if (subcat['subcategory_name'] == newValue) {
-                                      subcategoryId = subcat['subcategory_id'];
-                                      break;
-                                    }
-                                  }
-                                }
-                                
-                                selectedSubcategoryId = subcategoryId ?? 0;
-                              }
-                            });
-                          }
-                        },
-                        items: subcategories.map<DropdownMenuItem<String>>((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    SizedBox(height: 16),
-                    
-                    Text('Price Range (₹/day)', style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
+                    // Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('₹${priceRange.start.round()}'),
-                        Text('₹${priceRange.end.round()}'),
+                        Text(
+                          'Filter Options',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.grey.shade700),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
                       ],
                     ),
-                    RangeSlider(
-                      values: priceRange,
-                      min: 0,
-                      max: maxPrice,
-                      divisions: 20,
-                      labels: RangeLabels(
-                        '₹${priceRange.start.round()}',
-                        '₹${priceRange.end.round()}',
+                    Divider(height: 24, thickness: 1),
+                    
+                    // Scrollable content
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Category section
+                            Row(
+                              children: [
+                                Icon(Icons.category_outlined, 
+                                    color: Colors.blue.shade700, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Category',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.shade100,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: selectedCategory,
+                                  isExpanded: true,
+                                  icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 15,
+                                  ),
+                                  dropdownColor: Colors.white,
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setDialogState(() {
+                                        // Update subcategories when category changes
+                                        selectedCategory = newValue;
+                                        
+                                        if (newValue == 'All') {
+                                          subcategories = ['All'];
+                                          selectedSubcategory = 'All';
+                                          selectedCategoryId = 0;
+                                          selectedSubcategoryId = 0;
+                                        } else {
+                                          // Find the category_id for the selected category
+                                          int? categoryId;
+                                          for (var cat in categoryData) {
+                                            if (cat['category_name'] == newValue) {
+                                              categoryId = cat['category_id'];
+                                              break;
+                                            }
+                                          }
+                                          
+                                          selectedCategoryId = categoryId ?? 0;
+                                          
+                                          if (categoryId != null && categoryToSubcategories.containsKey(categoryId)) {
+                                            subcategories = ['All'];
+                                            for (var subcat in categoryToSubcategories[categoryId]!) {
+                                              subcategories.add(subcat['subcategory_name'].toString());
+                                            }
+                                          } else {
+                                            subcategories = ['All'];
+                                          }
+                                          
+                                          selectedSubcategory = 'All';
+                                          selectedSubcategoryId = 0;
+                                        }
+                                      });
+                                    }
+                                  },
+                                  items: categories.map<DropdownMenuItem<String>>((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 24),
+                            
+                            // Subcategory section
+                            Row(
+                              children: [
+                                Icon(Icons.view_list_outlined, 
+                                    color: Colors.blue.shade700, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Subcategory',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 12),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.shade100,
+                                    blurRadius: 4,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: selectedSubcategory,
+                                  isExpanded: true,
+                                  icon: Icon(Icons.arrow_drop_down, color: Colors.blue.shade700),
+                                  style: TextStyle(
+                                    color: Colors.black87,
+                                    fontSize: 15,
+                                  ),
+                                  dropdownColor: Colors.white,
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      setDialogState(() {
+                                        selectedSubcategory = newValue;
+                                        
+                                        if (newValue == 'All') {
+                                          selectedSubcategoryId = 0;
+                                        } else {
+                                          // Find the subcategory_id for the selected subcategory
+                                          int? subcategoryId;
+                                          if (selectedCategoryId != 0 && 
+                                              categoryToSubcategories.containsKey(selectedCategoryId)) {
+                                            for (var subcat in categoryToSubcategories[selectedCategoryId]!) {
+                                              if (subcat['subcategory_name'] == newValue) {
+                                                subcategoryId = subcat['subcategory_id'];
+                                                break;
+                                              }
+                                            }
+                                          }
+                                          
+                                          selectedSubcategoryId = subcategoryId ?? 0;
+                                        }
+                                      });
+                                    }
+                                  },
+                                  items: subcategories.map<DropdownMenuItem<String>>((String value) {
+                                    return DropdownMenuItem<String>(
+                                      value: value,
+                                      child: Text(value),
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 24),
+                            
+                            // Price range section
+                            Row(
+                              children: [
+                                Icon(Icons.attach_money_outlined, 
+                                    color: Colors.blue.shade700, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Price Range (₹/day)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            // Price range labels
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '₹${priceRange.start.round()}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '₹${priceRange.end.round()}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+                            // Slider
+                            SliderTheme(
+                              data: SliderThemeData(
+                                activeTrackColor: Colors.blue.shade600,
+                                inactiveTrackColor: Colors.blue.shade100,
+                                thumbColor: Colors.white,
+                                overlayColor: Colors.blue.shade200.withOpacity(0.2),
+                                thumbShape: RoundSliderThumbShape(enabledThumbRadius: 12),
+                                overlayShape: RoundSliderOverlayShape(overlayRadius: 20),
+                                valueIndicatorColor: Colors.blue.shade700,
+                                valueIndicatorTextStyle: TextStyle(color: Colors.white),
+                              ),
+                              child: RangeSlider(
+                                values: priceRange,
+                                min: 0,
+                                max: maxPrice,
+                                divisions: 20,
+                                labels: RangeLabels(
+                                  '₹${priceRange.start.round()}',
+                                  '₹${priceRange.end.round()}',
+                                ),
+                                onChanged: (RangeValues values) {
+                                  setDialogState(() {
+                                    priceRange = values;
+                                  });
+                                },
+                              ),
+                            ),
+                            SizedBox(height: 24),
+                            
+                            // Stock availability
+                            Row(
+                              children: [
+                                Transform.scale(
+                                  scale: 0.9,
+                                  child: Switch(
+                                    value: showOnlyInStock,
+                                    activeColor: Colors.blue.shade700,
+                                    activeTrackColor: Colors.blue.shade200,
+                                    onChanged: (bool value) {
+                                      setDialogState(() {
+                                        showOnlyInStock = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Show only in-stock items',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                      onChanged: (RangeValues values) {
-                        setDialogState(() {
-                          priceRange = values;
-                        });
-                      },
                     ),
                     SizedBox(height: 16),
+                    Divider(height: 0, thickness: 1),
+                    SizedBox(height: 16),
                     
+                    // Action buttons
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Checkbox(
-                          value: showOnlyInStock,
-                          onChanged: (bool? value) {
+                        TextButton.icon(
+                          icon: Icon(Icons.refresh, size: 18),
+                          label: Text('Reset'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey.shade700,
+                          ),
+                          onPressed: () {
                             setDialogState(() {
-                              showOnlyInStock = value ?? false;
+                              selectedCategory = 'All';
+                              selectedCategoryId = 0;
+                              selectedSubcategory = 'All';
+                              selectedSubcategoryId = 0;
+                              subcategories = ['All'];
+                              priceRange = RangeValues(0, maxPrice);
+                              showOnlyInStock = false;
                             });
                           },
                         ),
-                        Text('Show only in-stock items'),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade700,
+                            foregroundColor: Colors.white,
+                            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Apply Filters',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            _filterItems();
+                          },
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  child: Text('Reset'),
-                  onPressed: () {
-                    setDialogState(() {
-                      selectedCategory = 'All';
-                      selectedCategoryId = 0;
-                      selectedSubcategory = 'All';
-                      selectedSubcategoryId = 0;
-                      subcategories = ['All'];
-                      priceRange = RangeValues(0, maxPrice);
-                      showOnlyInStock = false;
-                    });
-                  },
-                ),
-                TextButton(
-                  child: Text('Cancel'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                ElevatedButton(
-                  child: Text('Apply'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    _filterItems();
-                  },
-                ),
-              ],
             );
           },
         );
@@ -496,6 +672,8 @@ class _UserHomePageState extends State<UserHomePage> {
   }
 
   Widget _buildRandomItemCard(Map<String, dynamic> item) {
+    bool isInStock = (itemStocks[item['item_id']] ?? 0) > 0;
+    
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -506,28 +684,30 @@ class _UserHomePageState extends State<UserHomePage> {
         );
       },
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.7,
-        margin: const EdgeInsets.only(right: 16),
+        width: MediaQuery.of(context).size.width * 0.85,
+        margin: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           child: Stack(
             children: [
               // Image
-              Image.network(
-                item['item_photo'],
-                width: double.infinity,
+              Container(
                 height: double.infinity,
-                fit: BoxFit.cover,
+                width: double.infinity,
+                child: Image.network(
+                  item['item_photo'],
+                  fit: BoxFit.cover,
+                ),
               ),
               // Gradient overlay
               Container(
@@ -539,14 +719,15 @@ class _UserHomePageState extends State<UserHomePage> {
                       Colors.transparent,
                       Colors.black.withOpacity(0.7),
                     ],
+                    stops: const [0.5, 1.0],
                   ),
                 ),
               ),
               // Text overlay
               Positioned(
-                bottom: 12,
-                left: 12,
-                right: 12,
+                bottom: 16,
+                left: 16,
+                right: 16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -554,21 +735,111 @@ class _UserHomePageState extends State<UserHomePage> {
                       item['item_name'],
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₹${item['item_rentprice']}/day',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                      ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Price tag
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '₹${item['item_rentprice']}/day',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        // Stock indicator
+                        if (isInStock)
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Available',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.cancel,
+                                  color: Colors.white,
+                                  size: 14,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Out of stock',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ],
+                ),
+              ),
+              // Optional top left category tag
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade700.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _getCategoryName(item['category_id']),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -576,6 +847,19 @@ class _UserHomePageState extends State<UserHomePage> {
         ),
       ),
     );
+  }
+  
+  // Helper method to get category name from category ID
+  String _getCategoryName(int? categoryId) {
+    if (categoryId == null) return 'Tool';
+    
+    for (var category in categoryData) {
+      if (category['category_id'] == categoryId) {
+        return category['category_name'] ?? 'Tool';
+      }
+    }
+    
+    return 'Tool';
   }
 
   @override
@@ -802,37 +1086,77 @@ class _UserHomePageState extends State<UserHomePage> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(Icons.star_outline, color: Colors.blue.shade700),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.star_outline, color: Colors.blue.shade700),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Featured Tools',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 12),
                       Text(
-                        'Featured Tools',
+                        '${randomItems.length} items',
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
                 SizedBox(
-                  height: 200,
+                  height: 220,
                   child: isLoading
                       ? Center(child: CircularProgressIndicator())
-                      : PageView.builder(
-                          controller: _pageController,
-                          itemCount: randomItems.length,
-                          itemBuilder: (context, index) {
-                            return _buildRandomItemCard(randomItems[index]);
-                          },
+                      : Column(
+                          children: [
+                            Expanded(
+                              child: PageView.builder(
+                                controller: _pageController,
+                                itemCount: randomItems.length,
+                                itemBuilder: (context, index) {
+                                  return _buildRandomItemCard(randomItems[index]);
+                                },
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            // Page indicator
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(
+                                randomItems.length,
+                                (index) => AnimatedContainer(
+                                  duration: Duration(milliseconds: 300),
+                                  margin: EdgeInsets.symmetric(horizontal: 4),
+                                  height: 8,
+                                  width: _pageController.hasClients && 
+                                         _pageController.page?.round() == index ? 24 : 8,
+                                  decoration: BoxDecoration(
+                                    color: _pageController.hasClients && 
+                                         _pageController.page?.round() == index
+                                        ? Colors.blue.shade700
+                                        : Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ],
