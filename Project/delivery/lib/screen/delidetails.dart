@@ -18,11 +18,18 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   String formattedStartDate = '';
   String formattedReturnDate = '';
   Map<String, dynamic> user = {};
+  TextEditingController notesController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     fetchUserData();
+  }
+
+  @override
+  void dispose() {
+    notesController.dispose();
+    super.dispose();
   }
 
   // Method to fetch user data based on user_id from tbl_user table
@@ -159,6 +166,9 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
     final cartStatus = widget.delivery['cart_status'];
     final isReturn = cartStatus == 5;
     final newStatus = isReturn ? 6 : 4;
+    
+    // Print entered notes for debugging
+    print('Notes entered: ${notesController.text}');
 
     try {
       await Supabase.instance.client
@@ -171,6 +181,7 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
           content: Text(isReturn
               ? 'Item marked as picked'
               : 'Item marked as delivered'),
+          backgroundColor: Colors.green,
         ),
       );
 
@@ -250,6 +261,16 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                   style: TextStyle(fontSize: 22, color: Colors.green),
                 ),
                 Spacer(),
+                TextField(
+                  controller: notesController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter notes ',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  maxLines: 2,
+                ),
+                SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: updateDeliveryStatus,
                   style: ElevatedButton.styleFrom(

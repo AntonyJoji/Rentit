@@ -150,6 +150,7 @@ class _CartPageState extends State<CartPage> {
       if (newQuantity > (itemStocks[itemId] ?? 0)) {
         print('Error: New quantity ($newQuantity) exceeds available stock (${itemStocks[itemId]})');
         ScaffoldMessenger.of(context).showSnackBar(
+          
           SnackBar(content: Text('Cannot add more than available stock')),
         );
         return;
