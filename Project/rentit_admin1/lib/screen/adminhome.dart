@@ -43,7 +43,7 @@ class _AdminHomeState extends State<AdminHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Color(0xFFFFFFFF),
+        backgroundColor: Color.fromARGB(255, 236, 156, 156),
         body: Row(
           children: [
             Expanded(
